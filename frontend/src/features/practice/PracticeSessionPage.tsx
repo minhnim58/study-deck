@@ -1,5 +1,5 @@
 import { Alert, Badge, Button, Card, Group, Loader, Stack, Text, TextInput, Title } from '@mantine/core';
-import { IconAlertCircle, IconCheck, IconClipboardCheck } from '@tabler/icons-react';
+import { IconAlertCircle, IconCheck, IconClipboardCheck, IconFlame, IconStar } from '@tabler/icons-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -21,6 +21,7 @@ export function PracticeSessionPage() {
   const [test, setTest] = useState<PracticeTestResponse | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answer, setAnswer] = useState('');
+  const [rewardSummary, setRewardSummary] = useState<{ points: number; streak: number } | null>(null);
   const actionInFlight = useRef(false);
 
   const testQuery = useQuery({
@@ -56,7 +57,10 @@ export function PracticeSessionPage() {
 
   const submitMutation = useMutation({
     mutationFn: () => submitPracticeTest(parsedPracticeTestId),
-    onSuccess: (response) => setTest(response),
+    onSuccess: (response) => {
+      setTest(response);
+      setRewardSummary({ points: response.scorePercent >= 50 ? 50 : 25, streak: 1 });
+    },
   });
 
   const controlsDisabled = answerMutation.isPending || submitMutation.isPending || actionInFlight.current;
@@ -132,6 +136,21 @@ export function PracticeSessionPage() {
       {submitted ? (
         <Stack gap="md">
           <Title order={2}>Score: {Math.round(test?.scorePercent ?? 0)}%</Title>
+          {rewardSummary ? (
+            <Card withBorder radius="sm" p="md" style={{ background: 'var(--mantine-color-green-light)' }}>
+              <Stack gap={4}>
+                <Text fw={700}>Reward unlocked</Text>
+                <Group gap="sm">
+                  <Badge color="green" leftSection={<IconStar size={14} />}>
+                    {rewardSummary.points} points
+                  </Badge>
+                  <Badge color="yellow" leftSection={<IconFlame size={14} />}>
+                    {rewardSummary.streak} day streak
+                  </Badge>
+                </Group>
+              </Stack>
+            </Card>
+          ) : null}
           {questions.map((question, index) => (
             <Card key={question.id} withBorder radius="sm">
               <Stack gap="xs">

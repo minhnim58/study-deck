@@ -1,5 +1,5 @@
 import { Alert, Badge, Button, Card, Group, Loader, Stack, Text, TextInput, Title } from '@mantine/core';
-import { IconAlertCircle, IconCheck, IconFlag, IconX } from '@tabler/icons-react';
+import { IconAlertCircle, IconCheck, IconFlag, IconFlame, IconStar, IconX } from '@tabler/icons-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -26,6 +26,7 @@ export function LearnSessionPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answer, setAnswer] = useState('');
   const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [rewardSummary, setRewardSummary] = useState<{ points: number; streak: number } | null>(null);
 
   const sessionQuery = useQuery({
     queryKey: ['learn-session', parsedSessionId],
@@ -64,7 +65,10 @@ export function LearnSessionPage() {
 
   const completeMutation = useMutation({
     mutationFn: () => completeLearnSession(parsedSessionId),
-    onSuccess: (response) => setSession((current) => ({ ...(current ?? response), ...response })),
+    onSuccess: (response) => {
+      setSession((current) => ({ ...(current ?? response), ...response }));
+      setRewardSummary({ points: 40, streak: 1 });
+    },
   });
 
   function checkAnswer(submittedAnswer = answer) {
@@ -100,10 +104,27 @@ export function LearnSessionPage() {
       ) : null}
 
       {completed ? (
-        <EmptyState
-          title="Learn complete"
-          description={`Correct: ${session?.correctCount ?? 0}. Wrong: ${session?.wrongCount ?? 0}.`}
-        />
+        <Stack gap="md">
+          <EmptyState
+            title="Learn complete"
+            description={`Correct: ${session?.correctCount ?? 0}. Wrong: ${session?.wrongCount ?? 0}.`}
+          />
+          {rewardSummary ? (
+            <Card withBorder radius="sm" p="md" style={{ background: 'var(--mantine-color-green-light)' }}>
+              <Stack gap={4}>
+                <Text fw={700}>Reward unlocked</Text>
+                <Group gap="sm">
+                  <Badge color="green" leftSection={<IconStar size={14} />}>
+                    {rewardSummary.points} points
+                  </Badge>
+                  <Badge color="yellow" leftSection={<IconFlame size={14} />}>
+                    {rewardSummary.streak} day streak
+                  </Badge>
+                </Group>
+              </Stack>
+            </Card>
+          ) : null}
+        </Stack>
       ) : null}
 
       {!sessionQuery.isLoading && !completed && items.length === 0 ? (
