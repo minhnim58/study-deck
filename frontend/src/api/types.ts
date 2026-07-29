@@ -2,6 +2,9 @@ export type AuthUser = {
   id: number;
   email: string;
   displayName: string | null;
+  points?: number;
+  level?: number;
+  streakCount?: number;
 };
 
 export type AuthResponse = {
@@ -23,6 +26,35 @@ export type RegisterRequest = {
 };
 
 export type Visibility = 'PRIVATE' | 'PUBLIC';
+
+export type UserGamification = {
+  userId: number;
+  points: number;
+  level: number;
+  streakCount: number;
+  lastActiveAt: string | null;
+  nextLevelProgress: number;
+  nextLevelRequiredPoints: number;
+};
+
+export type DailyMissionResponse = {
+  key: string;
+  title: string;
+  description: string;
+  target: number;
+  progress: number;
+  rewardPoints: number;
+  status: 'IN_PROGRESS' | 'COMPLETED' | 'CLAIMED';
+  claimedAt: string | null;
+};
+
+export type DailyMissionStatusResponse = {
+  missionKey: string;
+  status: 'IN_PROGRESS' | 'COMPLETED' | 'CLAIMED';
+  progress: number;
+  target: number;
+  claimedAt: string | null;
+};
 
 export type FolderResponse = {
   id: number;

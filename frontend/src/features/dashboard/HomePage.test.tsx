@@ -24,6 +24,31 @@ describe('HomePage', () => {
           },
         ]),
       ),
+      http.get('/api/v1/users/me/gamification', () =>
+        HttpResponse.json({
+          userId: 1,
+          points: 250,
+          level: 4,
+          streakCount: 8,
+          lastActiveAt: '2026-07-30T08:00:00Z',
+          nextLevelProgress: 62,
+          nextLevelRequiredPoints: 400,
+        }),
+      ),
+      http.get('/api/v1/users/me/daily-missions', () =>
+        HttpResponse.json([
+          {
+            key: 'practice_test_completed',
+            title: 'Complete a practice test',
+            description: 'Finish one practice test session',
+            target: 1,
+            progress: 1,
+            rewardPoints: 50,
+            status: 'COMPLETED',
+            claimedAt: null,
+          },
+        ]),
+      ),
     );
 
     renderWithProviders(<HomePage />);
@@ -31,6 +56,10 @@ describe('HomePage', () => {
     expect(await screen.findByText('English Vocabulary')).toBeInTheDocument();
     expect(screen.getByText('Decks')).toBeInTheDocument();
     expect(screen.getByText('Folders')).toBeInTheDocument();
+    expect(screen.getByText('Points')).toBeInTheDocument();
+    expect(screen.getByText('Level')).toBeInTheDocument();
+    expect(screen.getByText('Streak')).toBeInTheDocument();
+    expect(screen.getByText('Complete a practice test')).toBeInTheDocument();
   });
 
   it('shows loading while dashboard data is pending', () => {

@@ -1,8 +1,10 @@
 import { Alert, Button, Card, Group, Loader, SimpleGrid, Stack, Text, Title } from '@mantine/core';
-import { IconAlertCircle, IconCards, IconFolder, IconPlus, IconStar } from '@tabler/icons-react';
+import { IconAlertCircle, IconCards, IconFlame, IconFolder, IconPlus, IconStar, IconTargetArrow } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { listDecks, listFolders } from '../../api/deckApi';
+import { getDailyMissions, getGamification } from '../../api/gamificationApi';
+import { DailyMissionList } from '../../components/DailyMissionList';
 import { EmptyState } from '../../components/EmptyState';
 import { PageHeader } from '../../components/PageHeader';
 import { StatCard } from '../../components/StatCard';
@@ -10,8 +12,10 @@ import { StatCard } from '../../components/StatCard';
 export function HomePage() {
   const folders = useQuery({ queryKey: ['folders'], queryFn: listFolders });
   const decks = useQuery({ queryKey: ['decks'], queryFn: listDecks });
-  const isLoading = folders.isLoading || decks.isLoading;
-  const isError = folders.isError || decks.isError;
+  const gamification = useQuery({ queryKey: ['gamification'], queryFn: getGamification });
+  const missions = useQuery({ queryKey: ['daily-missions'], queryFn: getDailyMissions });
+  const isLoading = folders.isLoading || decks.isLoading || gamification.isLoading || missions.isLoading;
+  const isError = folders.isError || decks.isError || gamification.isError || missions.isError;
   const recentDecks = [...(decks.data ?? [])]
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
     .slice(0, 4);
@@ -34,7 +38,7 @@ export function HomePage() {
         </Alert>
       ) : null}
 
-      <SimpleGrid cols={{ base: 1, sm: 3 }}>
+      <SimpleGrid cols={{ base: 1, sm: 2, lg: 5 }}>
         <StatCard
           label="Decks"
           value={isLoading ? <Loader aria-label="Loading dashboard" size="sm" /> : (decks.data?.length ?? 0)}
@@ -45,8 +49,49 @@ export function HomePage() {
           value={isLoading ? <Loader aria-label="Loading dashboard" size="sm" /> : (folders.data?.length ?? 0)}
           icon={<IconFolder size={20} />}
         />
-        <StatCard label="Starred" value="Open deck" icon={<IconStar size={20} />} />
+        <StatCard
+          label="Points"
+          value={isLoading ? <Loader aria-label="Loading dashboard" size="sm" /> : (gamification.data?.points ?? 0)}
+          icon={<IconStar size={20} />}
+        />
+        <StatCard
+          label="Level"
+          value={isLoading ? <Loader aria-label="Loading dashboard" size="sm" /> : (gamification.data?.level ?? 1)}
+          icon={<IconTargetArrow size={20} />}
+        />
+        <StatCard
+          label="Streak"
+          value={isLoading ? <Loader aria-label="Loading dashboard" size="sm" /> : `${gamification.data?.streakCount ?? 0} days`}
+          icon={<IconFlame size={20} />}
+        />
       </SimpleGrid>
+
+      <Card withBorder radius="sm" p="md">
+        <Group justify="space-between" align="center">
+          <Stack gap={2}>
+            <Text fw={600}>Next level progress</Text>
+            <Text c="dimmed" size="sm">
+              {isLoading
+                ? 'Loading progress...'
+                : `${gamification.data?.nextLevelProgress ?? 0}% to the next level`}
+            </Text>
+          </Stack>
+          <Text fw={700} size="xl">
+            {isLoading ? <Loader aria-label="Loading dashboard" size="sm" /> : `${gamification.data?.nextLevelProgress ?? 0}%`}
+          </Text>
+        </Group>
+      </Card>
+
+      <Stack gap="md">
+        <Title order={2}>Daily missions</Title>
+        {missions.isLoading ? <Loader aria-label="Loading missions" /> : null}
+        {!missions.isLoading && (missions.data?.length ?? 0) > 0 ? (
+          <DailyMissionList missions={missions.data ?? []} />
+        ) : null}
+        {!missions.isLoading && (missions.data?.length ?? 0) === 0 ? (
+          <Text c="dimmed">No missions available today.</Text>
+        ) : null}
+      </Stack>
 
       <Group gap="sm">
         <Button component={Link} to="/library" variant="light">
