@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import java.security.Principal;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,44 +30,48 @@ public class DeckController {
     }
 
     @GetMapping("/decks")
-    public List<DeckResponse> listDecks() {
-        return deckService.listDecks().stream()
+    public List<DeckResponse> listDecks(Principal principal) {
+        return deckService.listDecks(principal.getName()).stream()
                 .map(DeckResponse::from)
                 .toList();
     }
 
     @PostMapping("/decks")
     @ResponseStatus(HttpStatus.CREATED)
-    public DeckResponse createDeck(@Valid @RequestBody CreateDeckRequest request) {
-        return DeckResponse.from(deckService.createDeck(request.folderId(), request.title(), request.description()));
+    public DeckResponse createDeck(Principal principal, @Valid @RequestBody CreateDeckRequest request) {
+        return DeckResponse.from(deckService.createDeck(principal.getName(), request.folderId(), request.title(),
+                request.description(), request.visibility()));
     }
 
     @GetMapping("/decks/{deckId}")
-    public DeckResponse getDeck(@PathVariable("deckId") Long deckId) {
-        return DeckResponse.from(deckService.getDeck(deckId));
+    public DeckResponse getDeck(Principal principal, @PathVariable("deckId") Long deckId) {
+        return DeckResponse.from(deckService.getDeck(deckId, principal.getName()));
     }
 
     @PatchMapping("/decks/{deckId}")
     public DeckResponse updateDeck(
+            Principal principal,
             @PathVariable("deckId") Long deckId,
             @Valid @RequestBody UpdateDeckRequest request) {
-        return DeckResponse.from(deckService.updateDeck(deckId, request.title(), request.description()));
+        return DeckResponse.from(deckService.updateDeck(principal.getName(), deckId, request.title(),
+                request.description(), request.visibility()));
     }
 
     @DeleteMapping("/decks/{deckId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteDeck(@PathVariable("deckId") Long deckId) {
-        deckService.deleteDeck(deckId);
+    public void deleteDeck(Principal principal, @PathVariable("deckId") Long deckId) {
+        deckService.deleteDeck(principal.getName(), deckId);
     }
 
     @PostMapping("/folders/{folderId}/decks/{deckId}")
-    public DeckResponse moveDeckToFolder(@PathVariable("folderId") Long folderId, @PathVariable("deckId") Long deckId) {
-        return DeckResponse.from(deckService.moveDeckToFolder(folderId, deckId));
+    public DeckResponse moveDeckToFolder(Principal principal, @PathVariable("folderId") Long folderId,
+            @PathVariable("deckId") Long deckId) {
+        return DeckResponse.from(deckService.moveDeckToFolder(principal.getName(), folderId, deckId));
     }
 
     @DeleteMapping("/folders/{folderId}/decks/{deckId}")
-    public DeckResponse removeDeckFromFolder(@PathVariable("folderId") Long folderId,
+    public DeckResponse removeDeckFromFolder(Principal principal, @PathVariable("folderId") Long folderId,
             @PathVariable("deckId") Long deckId) {
-        return DeckResponse.from(deckService.removeDeckFromFolder(folderId, deckId));
+        return DeckResponse.from(deckService.removeDeckFromFolder(principal.getName(), folderId, deckId));
     }
 }

@@ -17,8 +17,10 @@ import { getDeck, getDeckSummary } from '../../api/deckApi';
 import { listFlashcards } from '../../api/flashcardApi';
 import { EmptyState } from '../../components/EmptyState';
 import { PageHeader } from '../../components/PageHeader';
+import { useAuth } from '../../auth/AuthProvider';
 
 export function DeckDetailPage() {
+  const { user } = useAuth();
   const { deckId } = useParams();
   const parsedDeckId = Number(deckId);
   const enabled = Number.isFinite(parsedDeckId);
@@ -56,13 +58,18 @@ export function DeckDetailPage() {
             title={deck.data.title}
             description={deck.data.description ?? 'No description'}
             actions={
-              <Button component={Link} to={`/decks/${parsedDeckId}/flashcards/edit`} leftSection={<IconEdit size={16} />}>
-                Edit cards
-              </Button>
+              deck.data.creatorId === user?.id ? (
+                <Button component={Link} to={`/decks/${parsedDeckId}/flashcards/edit`} leftSection={<IconEdit size={16} />}>
+                  Edit cards
+                </Button>
+              ) : null
             }
           />
 
           <Group gap="sm">
+            {deck.data.visibility === 'PUBLIC' && deck.data.creatorDisplayName ? (
+              <Badge variant="dot" color="blue">Created by {deck.data.creatorDisplayName}</Badge>
+            ) : null}
             <Badge variant="light">{summary.data?.totalCards ?? flashcards.data?.length ?? 0} total cards</Badge>
             <Badge variant="light">{flashcards.data?.length ?? 0} loaded cards</Badge>
             <Badge variant="light">{summary.data?.starredCards ?? 0} starred</Badge>
@@ -99,9 +106,11 @@ export function DeckDetailPage() {
               title="No cards yet"
               description="Create flashcards before starting a study mode."
               action={
-                <Button component={Link} to={`/decks/${parsedDeckId}/flashcards/edit`}>
-                  Add cards
-                </Button>
+                deck.data?.creatorId === user?.id ? (
+                  <Button component={Link} to={`/decks/${parsedDeckId}/flashcards/edit`}>
+                    Add cards
+                  </Button>
+                ) : null
               }
             />
           ) : null}
@@ -110,9 +119,11 @@ export function DeckDetailPage() {
             <Stack gap="md">
               <Group justify="space-between">
                 <Title order={2}>Cards</Title>
-                <Button component={Link} to={`/decks/${parsedDeckId}/flashcards/edit`} variant="light" leftSection={<IconEdit size={16} />}>
-                  Manage cards
-                </Button>
+                {deck.data?.creatorId === user?.id ? (
+                  <Button component={Link} to={`/decks/${parsedDeckId}/flashcards/edit`} variant="light" leftSection={<IconEdit size={16} />}>
+                    Manage cards
+                  </Button>
+                ) : null}
               </Group>
               <SimpleGrid cols={{ base: 1, md: 2 }}>
                 {flashcards.data.map((card, index) => (

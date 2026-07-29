@@ -7,6 +7,7 @@ type DeckFormValues = {
   folderId: string | null;
   title: string;
   description: string;
+  visibility: "PUBLIC" | "PRIVATE";
 };
 
 type DeckFormModalProps = {
@@ -22,6 +23,7 @@ function toRequest(values: DeckFormValues, editing: boolean): CreateDeckRequest 
   const shared = {
     title: values.title.trim(),
     description: values.description.trim() || null,
+    visibility: values.visibility,
   };
 
   if (editing) {
@@ -40,6 +42,7 @@ export function DeckFormModal({ opened, onClose, onSubmit, folders, deck, loadin
       folderId: null,
       title: '',
       description: '',
+      visibility: 'PRIVATE',
     },
     validate: {
       title: isNotEmpty('Deck title is required'),
@@ -55,6 +58,7 @@ export function DeckFormModal({ opened, onClose, onSubmit, folders, deck, loadin
       folderId: deck?.folderId ? String(deck.folderId) : null,
       title: deck?.title ?? '',
       description: deck?.description ?? '',
+      visibility: deck?.visibility ?? 'PRIVATE',
     });
     form.clearErrors();
     form.resetDirty();
@@ -71,9 +75,28 @@ export function DeckFormModal({ opened, onClose, onSubmit, folders, deck, loadin
             data={folders.map((folder) => ({ value: String(folder.id), label: folder.name }))}
             disabled={Boolean(deck)}
             {...form.getInputProps('folderId')}
+            onChange={(val) => {
+              form.setFieldValue('folderId', val);
+              if (val) {
+                const folder = folders.find((f) => String(f.id) === val);
+                if (folder?.visibility === 'PRIVATE') {
+                  form.setFieldValue('visibility', 'PRIVATE');
+                }
+              }
+            }}
           />
           <TextInput label="Title" placeholder="English Vocabulary" withAsterisk {...form.getInputProps('title')} />
           <Textarea label="Description" placeholder="Intermediate words" minRows={3} {...form.getInputProps('description')} />
+          <Select
+            label="Visibility"
+            placeholder="Select visibility"
+            data={[
+              { value: 'PRIVATE', label: 'Private - Only you can view' },
+              { value: 'PUBLIC', label: 'Public - Anyone can view' },
+            ]}
+            {...form.getInputProps('visibility')}
+            disabled={Boolean(form.values.folderId && folders.find(f => String(f.id) === form.values.folderId)?.visibility === 'PRIVATE')}
+          />
           <Group justify="flex-end">
             <Button variant="subtle" onClick={onClose} type="button">
               Cancel

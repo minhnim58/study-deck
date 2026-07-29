@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import java.security.Principal;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,33 +30,36 @@ public class FolderController {
     }
 
     @GetMapping
-    public List<FolderResponse> listFolders() {
-        return folderService.listFolders().stream()
+    public List<FolderResponse> listFolders(Principal principal) {
+        return folderService.listFolders(principal.getName()).stream()
                 .map(FolderResponse::from)
                 .toList();
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public FolderResponse createFolder(@Valid @RequestBody CreateFolderRequest request) {
-        return FolderResponse.from(folderService.createFolder(request.name(), request.description()));
+    public FolderResponse createFolder(Principal principal, @Valid @RequestBody CreateFolderRequest request) {
+        return FolderResponse.from(folderService.createFolder(principal.getName(), request.name(),
+                request.description(), request.visibility()));
     }
 
     @GetMapping("/{folderId}")
-    public FolderResponse getFolder(@PathVariable("folderId") Long folderId) {
-        return FolderResponse.from(folderService.getFolder(folderId));
+    public FolderResponse getFolder(Principal principal, @PathVariable("folderId") Long folderId) {
+        return FolderResponse.from(folderService.getFolder(folderId, principal.getName()));
     }
 
     @PatchMapping("/{folderId}")
     public FolderResponse updateFolder(
+            Principal principal,
             @PathVariable("folderId") Long folderId,
             @Valid @RequestBody UpdateFolderRequest request) {
-        return FolderResponse.from(folderService.updateFolder(folderId, request.name(), request.description()));
+        return FolderResponse.from(folderService.updateFolder(principal.getName(), folderId, request.name(),
+                request.description(), request.visibility()));
     }
 
     @DeleteMapping("/{folderId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteFolder(@PathVariable("folderId") Long folderId) {
-        folderService.deleteFolder(folderId);
+    public void deleteFolder(Principal principal, @PathVariable("folderId") Long folderId) {
+        folderService.deleteFolder(principal.getName(), folderId);
     }
 }

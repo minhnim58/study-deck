@@ -60,7 +60,7 @@ public class MatchingSessionService {
             throw new InvalidRequestException(NOT_ENOUGH_CARDS);
         }
 
-        boolean starredOnly = request.starredOnly();
+        boolean starredOnly = request == null ? false : request.starredOnly();
         List<Flashcard> flashcards = starredOnly
                 ? flashcardRepository.findByDeckIdAndStarredTrueOrderByPositionAscIdAsc(deckId)
                 : flashcardRepository.findByDeckIdOrderByPositionAscIdAsc(deckId);

@@ -1,4 +1,4 @@
-import { Button, Group, Modal, Stack, TextInput, Textarea } from '@mantine/core';
+import { Button, Group, Modal, Select, Stack, TextInput, Textarea } from '@mantine/core';
 import { isNotEmpty, useForm } from '@mantine/form';
 import { useEffect } from 'react';
 import type { CreateFolderRequest, FolderResponse } from '../../api/types';
@@ -6,6 +6,7 @@ import type { CreateFolderRequest, FolderResponse } from '../../api/types';
 type FolderFormValues = {
   name: string;
   description: string;
+  visibility: "PUBLIC" | "PRIVATE";
 };
 
 type FolderFormModalProps = {
@@ -20,6 +21,7 @@ function toRequest(values: FolderFormValues): CreateFolderRequest {
   return {
     name: values.name.trim(),
     description: values.description.trim() || null,
+    visibility: values.visibility,
   };
 }
 
@@ -28,6 +30,7 @@ export function FolderFormModal({ opened, onClose, onSubmit, folder, loading = f
     initialValues: {
       name: '',
       description: '',
+      visibility: 'PRIVATE',
     },
     validate: {
       name: isNotEmpty('Folder name is required'),
@@ -42,6 +45,7 @@ export function FolderFormModal({ opened, onClose, onSubmit, folder, loading = f
     form.setValues({
       name: folder?.name ?? '',
       description: folder?.description ?? '',
+      visibility: folder?.visibility ?? 'PRIVATE',
     });
     form.clearErrors();
     form.resetDirty();
@@ -53,6 +57,15 @@ export function FolderFormModal({ opened, onClose, onSubmit, folder, loading = f
         <Stack>
           <TextInput label="Name" placeholder="English" withAsterisk {...form.getInputProps('name')} />
           <Textarea label="Description" placeholder="Vocabulary decks" minRows={3} {...form.getInputProps('description')} />
+          <Select
+            label="Visibility"
+            placeholder="Select visibility"
+            data={[
+              { value: 'PRIVATE', label: 'Private - Only you can view' },
+              { value: 'PUBLIC', label: 'Public - Anyone can view' },
+            ]}
+            {...form.getInputProps('visibility')}
+          />
           <Group justify="flex-end">
             <Button variant="subtle" onClick={onClose} type="button">
               Cancel

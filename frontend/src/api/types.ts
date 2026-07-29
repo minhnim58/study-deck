@@ -60,6 +60,9 @@ export type FolderResponse = {
   id: number;
   name: string;
   description: string | null;
+  visibility: Visibility;
+  creatorId: number | null;
+  creatorDisplayName: string | null;
   position: number;
   createdAt: string;
   updatedAt: string;
@@ -68,6 +71,7 @@ export type FolderResponse = {
 export type CreateFolderRequest = {
   name: string;
   description: string | null;
+  visibility: Visibility;
 };
 
 export type UpdateFolderRequest = CreateFolderRequest;
@@ -78,6 +82,8 @@ export type DeckResponse = {
   title: string;
   description: string | null;
   visibility: Visibility;
+  creatorId: number | null;
+  creatorDisplayName: string | null;
   createdAt: string;
   updatedAt: string;
   totalCards: number;
@@ -87,11 +93,13 @@ export type CreateDeckRequest = {
   folderId: number | null;
   title: string;
   description: string | null;
+  visibility: Visibility;
 };
 
 export type UpdateDeckRequest = {
   title: string;
   description: string | null;
+  visibility: Visibility;
 };
 
 export type DeckSummaryResponse = {

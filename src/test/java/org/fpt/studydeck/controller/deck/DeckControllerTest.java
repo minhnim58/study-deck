@@ -12,6 +12,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.fpt.studydeck.repository.auth.AppUserRepository;
+import org.fpt.studydeck.domain.auth.AppUser;
+import org.fpt.studydeck.domain.deck.Visibility;
+import org.junit.jupiter.api.BeforeEach;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -24,21 +28,32 @@ class DeckControllerTest {
     @Autowired
     private DeckService deckService;
 
+    @Autowired
+    private AppUserRepository appUserRepository;
+
+    @BeforeEach
+    void setUp() {
+        if (!appUserRepository.existsByEmail("user")) {
+            AppUser user = AppUser.create("user", "password", "Test User");
+            appUserRepository.save(user);
+        }
+    }
+
     @Test
     void createsDeck() throws Exception {
         mockMvc.perform(post("/api/v1/decks")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"title\":\"Korean Basics\",\"description\":\"Starter words\"}"))
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.title").value("Korean Basics"));
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title").value("Korean Basics"));
     }
 
     @Test
     void returnsNotFoundWhenRemovingDeckFromMissingFolder() throws Exception {
-        var deck = deckService.createDeck(null, "Korean Basics", null);
+        var deck = deckService.createDeck("user", null, "Korean Basics", null, Visibility.PUBLIC);
 
         mockMvc.perform(delete("/api/v1/folders/{folderId}/decks/{deckId}", 999L, deck.getId()))
-            .andExpect(status().isNotFound())
-            .andExpect(jsonPath("$.message").value("Folder was not found."));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Folder was not found."));
     }
 }

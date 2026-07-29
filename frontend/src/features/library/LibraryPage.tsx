@@ -33,8 +33,10 @@ import { EntityMenu } from '../../components/EntityMenu';
 import { PageHeader } from '../../components/PageHeader';
 import { DeckFormModal } from './DeckFormModal';
 import { FolderFormModal } from './FolderFormModal';
+import { useAuth } from '../../auth/AuthProvider';
 
 export function LibraryPage() {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const location = useLocation();
   const folders = useQuery({ queryKey: ['folders'], queryFn: listFolders });
@@ -260,14 +262,22 @@ export function LibraryPage() {
                       <IconFolder size={20} />
                       <Text fw={700}>{folder.name}</Text>
                     </Group>
-                    <EntityMenu onEdit={() => setEditingFolder(folder)} onDelete={() => handleDeleteFolder(folder)} />
+                    {folder.creatorId === user?.id ? (
+                      <EntityMenu onEdit={() => setEditingFolder(folder)} onDelete={() => handleDeleteFolder(folder)} />
+                    ) : null}
                   </Group>
                   {folder.description ? (
                     <Text c="dimmed" size="sm" lineClamp={2}>
                       {folder.description}
                     </Text>
                   ) : null}
-                  <Badge variant="light">{(decks.data ?? []).filter((deck) => deck.folderId === folder.id).length} decks</Badge>
+                  <Group gap="xs">
+                    <Badge variant="light">{(decks.data ?? []).filter((deck) => deck.folderId === folder.id).length} decks</Badge>
+                    <Badge variant="light" color={folder.visibility === 'PUBLIC' ? 'blue' : 'gray'}>{folder.visibility}</Badge>
+                    {folder.visibility === 'PUBLIC' && folder.creatorDisplayName && folder.creatorId !== user?.id ? (
+                      <Badge variant="dot" color="blue">By {folder.creatorDisplayName}</Badge>
+                    ) : null}
+                  </Group>
                 </Stack>
               </Card>
             ))}
@@ -287,7 +297,9 @@ export function LibraryPage() {
                       <IconCards size={20} />
                       <Text fw={700}>{deck.title}</Text>
                     </Group>
-                    <EntityMenu onEdit={() => setEditingDeck(deck)} onDelete={() => handleDeleteDeck(deck)} />
+                    {deck.creatorId === user?.id ? (
+                      <EntityMenu onEdit={() => setEditingDeck(deck)} onDelete={() => handleDeleteDeck(deck)} />
+                    ) : null}
                   </Group>
                   {deck.description ? (
                     <Text c="dimmed" size="sm" lineClamp={2}>
@@ -296,10 +308,13 @@ export function LibraryPage() {
                   ) : null}
                   <Group justify="space-between">
                     <Group gap="xs">
-                      <Badge variant="light">{deck.visibility}</Badge>
+                      <Badge variant="light" color={deck.visibility === 'PUBLIC' ? 'blue' : 'gray'}>{deck.visibility}</Badge>
                       <Badge variant="outline" color="gray">
                         {deck.totalCards} cards
                       </Badge>
+                      {deck.visibility === 'PUBLIC' && deck.creatorDisplayName && deck.creatorId !== user?.id ? (
+                        <Badge variant="dot" color="blue">By {deck.creatorDisplayName}</Badge>
+                      ) : null}
                     </Group>
                     <Button component={Link} to={`/decks/${deck.id}`} variant="light" size="xs">
                       Open

@@ -11,6 +11,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
+import org.fpt.studydeck.repository.auth.AppUserRepository;
+import org.fpt.studydeck.domain.auth.AppUser;
+import org.fpt.studydeck.domain.deck.Visibility;
+import org.junit.jupiter.api.BeforeEach;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -26,15 +30,26 @@ class DeckSummaryControllerTest {
     @Autowired
     private FlashcardService flashcardService;
 
+    @Autowired
+    private AppUserRepository appUserRepository;
+
+    @BeforeEach
+    void setUp() {
+        if (!appUserRepository.existsByEmail("user")) {
+            AppUser user = AppUser.create("user", "password", "Test User");
+            appUserRepository.save(user);
+        }
+    }
+
     @Test
     void getsDeckSummary() throws Exception {
-        var deck = deckService.createDeck(null, "Korean Basics", null);
+        var deck = deckService.createDeck("user", null, "Korean Basics", null, Visibility.PUBLIC);
         flashcardService.createFlashcard(deck.getId(), "first", "one", null, null);
 
         mockMvc.perform(get("/api/v1/decks/{deckId}/summary", deck.getId()))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.deckId").value(deck.getId()))
-            .andExpect(jsonPath("$.totalCards").value(1))
-            .andExpect(jsonPath("$.newCards").value(1));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.deckId").value(deck.getId()))
+                .andExpect(jsonPath("$.totalCards").value(1))
+                .andExpect(jsonPath("$.newCards").value(1));
     }
 }

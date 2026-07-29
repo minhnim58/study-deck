@@ -1,6 +1,6 @@
 package org.fpt.studydeck.domain.deck;
 
-public enum DeckVisibility {
+public enum Visibility {
     PRIVATE,
     PUBLIC
 }

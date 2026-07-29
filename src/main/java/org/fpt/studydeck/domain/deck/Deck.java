@@ -16,6 +16,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import org.fpt.studydeck.domain.auth.AppUser;
+
 @Entity
 @Table(name = "decks")
 public class Deck {
@@ -36,7 +38,11 @@ public class Deck {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private DeckVisibility visibility = DeckVisibility.PRIVATE;
+    private Visibility visibility = Visibility.PRIVATE;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "creator_id")
+    private AppUser creator;
 
     @Formula("(SELECT COUNT(*) FROM flashcards f WHERE f.deck_id = id)")
     private int totalCards;
@@ -50,20 +56,22 @@ public class Deck {
     protected Deck() {
     }
 
-    public static Deck create(Folder folder, String title, String description) {
+    public static Deck create(Folder folder, String title, String description, Visibility visibility, AppUser creator) {
         Deck deck = new Deck();
         deck.folder = folder;
         deck.title = requireTitle(title);
         deck.description = Folder.trimToNull(description);
-        deck.visibility = DeckVisibility.PRIVATE;
+        deck.visibility = visibility != null ? visibility : Visibility.PRIVATE;
+        deck.creator = creator;
         deck.createdAt = Instant.now();
         deck.updatedAt = deck.createdAt;
         return deck;
     }
 
-    public void update(String title, String description) {
+    public void update(String title, String description, Visibility visibility) {
         this.title = requireTitle(title);
         this.description = Folder.trimToNull(description);
+        this.visibility = visibility != null ? visibility : Visibility.PRIVATE;
         this.updatedAt = Instant.now();
     }
 
@@ -96,8 +104,12 @@ public class Deck {
         return description;
     }
 
-    public DeckVisibility getVisibility() {
+    public Visibility getVisibility() {
         return visibility;
+    }
+
+    public AppUser getCreator() {
+        return creator;
     }
 
     public int getTotalCards() {

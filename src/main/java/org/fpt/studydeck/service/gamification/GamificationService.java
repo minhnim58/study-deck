@@ -23,9 +23,8 @@ public class GamificationService {
     private final UserGamificationRepository userGamificationRepository;
 
     public GamificationService(
-        AppUserRepository appUserRepository,
-        UserGamificationRepository userGamificationRepository
-    ) {
+            AppUserRepository appUserRepository,
+            UserGamificationRepository userGamificationRepository) {
         this.appUserRepository = appUserRepository;
         this.userGamificationRepository = userGamificationRepository;
     }
@@ -33,7 +32,15 @@ public class GamificationService {
     public UserGamification getOrCreateForEmail(String userEmail) {
         AppUser user = getUserByEmail(userEmail);
         return userGamificationRepository.findByUser(user)
-            .orElseGet(() -> userGamificationRepository.save(UserGamification.create(user)));
+                .orElseGet(() -> {
+                    try {
+                        return userGamificationRepository.save(UserGamification.create(user));
+                    } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                        return userGamificationRepository.findByUser(user)
+                                .orElseThrow(() -> new IllegalStateException(
+                                        "Failed to retrieve or create UserGamification"));
+                    }
+                });
     }
 
     public UserGamification awardPoints(String userEmail, long amount) {
@@ -57,8 +64,8 @@ public class GamificationService {
         UserGamification gamification = getOrCreateForEmail(userEmail);
         LocalDate today = LocalDate.now(ZoneId.systemDefault());
         LocalDate lastActiveDate = gamification.getLastActiveAt() == null
-            ? null
-            : gamification.getLastActiveAt().atZone(ZoneId.systemDefault()).toLocalDate();
+                ? null
+                : gamification.getLastActiveAt().atZone(ZoneId.systemDefault()).toLocalDate();
 
         if (!today.equals(lastActiveDate)) {
             if (lastActiveDate != null && lastActiveDate.plusDays(1).equals(today)) {
@@ -75,14 +82,22 @@ public class GamificationService {
 
     private UserGamification getOrCreateForUser(Long userId) {
         AppUser user = appUserRepository.findById(userId)
-            .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
         return userGamificationRepository.findByUser(user)
-            .orElseGet(() -> userGamificationRepository.save(UserGamification.create(user)));
+                .orElseGet(() -> {
+                    try {
+                        return userGamificationRepository.save(UserGamification.create(user));
+                    } catch (org.springframework.dao.DataIntegrityViolationException e) {
+                        return userGamificationRepository.findByUser(user)
+                                .orElseThrow(() -> new IllegalStateException(
+                                        "Failed to retrieve or create UserGamification"));
+                    }
+                });
     }
 
     private AppUser getUserByEmail(String userEmail) {
         return appUserRepository.findByEmail(AppUser.normalizeEmail(userEmail))
-            .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
     }
 
     private void updateLevel(UserGamification gamification) {
