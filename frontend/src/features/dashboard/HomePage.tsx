@@ -6,6 +6,7 @@ import { listDecks, listFolders } from '../../api/deckApi';
 import { getDailyMissions, getGamification } from '../../api/gamificationApi';
 import { DailyMissionList } from '../../components/DailyMissionList';
 import { EmptyState } from '../../components/EmptyState';
+import { GamificationCard } from '../../components/GamificationCard';
 import { PageHeader } from '../../components/PageHeader';
 import { StatCard } from '../../components/StatCard';
 
@@ -66,21 +67,13 @@ export function HomePage() {
         />
       </SimpleGrid>
 
-      <Card withBorder radius="sm" p="md">
-        <Group justify="space-between" align="center">
-          <Stack gap={2}>
-            <Text fw={600}>Next level progress</Text>
-            <Text c="dimmed" size="sm">
-              {isLoading
-                ? 'Loading progress...'
-                : `${gamification.data?.nextLevelProgress ?? 0}% to the next level`}
-            </Text>
-          </Stack>
-          <Text fw={700} size="xl">
-            {isLoading ? <Loader aria-label="Loading dashboard" size="sm" /> : `${gamification.data?.nextLevelProgress ?? 0}%`}
-          </Text>
-        </Group>
-      </Card>
+      <GamificationCard
+        title="Next level progress"
+        value={isLoading ? <Loader aria-label="Loading dashboard" size="sm" /> : `${gamification.data?.nextLevelProgress ?? 0}%`}
+        description={isLoading ? 'Loading progress...' : `${gamification.data?.nextLevelProgress ?? 0}% to the next level`}
+        isLoading={isLoading}
+        loadingLabel="Loading dashboard"
+      />
 
       <Stack gap="md">
         <Title order={2}>Daily missions</Title>

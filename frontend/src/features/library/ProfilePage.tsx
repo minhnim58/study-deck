@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../auth/AuthProvider';
 import { getDailyMissions, getGamification } from '../../api/gamificationApi';
 import { DailyMissionList } from '../../components/DailyMissionList';
+import { GamificationCard } from '../../components/GamificationCard';
 import { PageHeader } from '../../components/PageHeader';
 import { StatCard } from '../../components/StatCard';
 import { IconFlame, IconStar, IconTargetArrow } from '@tabler/icons-react';
@@ -41,21 +42,13 @@ export function ProfilePage() {
         />
       </SimpleGrid>
 
-      <Card withBorder radius="sm" p="md">
-        <Stack gap={8}>
-          <Group justify="space-between" align="center">
-            <Text fw={600}>Next level progress</Text>
-            <Text fw={700}>
-              {isLoading ? <Loader aria-label="Loading profile stats" size="sm" /> : `${gamification.data?.nextLevelProgress ?? 0}%`}
-            </Text>
-          </Group>
-          <Text c="dimmed" size="sm">
-            {isLoading
-              ? 'Loading progress...'
-              : `${gamification.data?.nextLevelProgress ?? 0}% to the next level`}
-          </Text>
-        </Stack>
-      </Card>
+      <GamificationCard
+        title="Next level progress"
+        value={isLoading ? <Loader aria-label="Loading profile stats" size="sm" /> : `${gamification.data?.nextLevelProgress ?? 0}%`}
+        description={isLoading ? 'Loading progress...' : `${gamification.data?.nextLevelProgress ?? 0}% to the next level`}
+        isLoading={isLoading}
+        loadingLabel="Loading profile stats"
+      />
 
       <Stack gap="md">
         <Title order={2}>Daily missions</Title>
