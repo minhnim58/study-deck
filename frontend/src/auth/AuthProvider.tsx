@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, useState } from 'react';
 import type { PropsWithChildren } from 'react';
 import type { AuthResponse, AuthUser } from '../api/types';
 import { clearAuthSnapshot, readAuthSnapshot, writeAuthSnapshot } from './authStore';
+import { useQueryClient } from '@tanstack/react-query';
 
 type AuthContextValue = {
   accessToken: string | null;
@@ -15,6 +16,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [snapshot, setSnapshot] = useState(readAuthSnapshot);
+  const queryClient = useQueryClient();
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -29,9 +31,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
       logout: () => {
         clearAuthSnapshot();
         setSnapshot({ accessToken: null, user: null });
+        queryClient.clear();
       },
     }),
-    [snapshot],
+    [snapshot, queryClient],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
