@@ -21,6 +21,8 @@ import org.fpt.studydeck.exception.ResourceNotFoundException;
 import org.fpt.studydeck.repository.deck.DeckRepository;
 import org.fpt.studydeck.repository.deck.FlashcardRepository;
 import org.fpt.studydeck.repository.practice.PracticeTestRepository;
+import org.fpt.studydeck.service.gamification.DailyMissionService;
+import org.fpt.studydeck.service.gamification.GamificationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,15 +42,21 @@ public class PracticeTestService {
     private final DeckRepository deckRepository;
     private final FlashcardRepository flashcardRepository;
     private final PracticeTestRepository practiceTestRepository;
+    private final GamificationService gamificationService;
+    private final DailyMissionService dailyMissionService;
 
     public PracticeTestService(
         DeckRepository deckRepository,
         FlashcardRepository flashcardRepository,
-        PracticeTestRepository practiceTestRepository
+        PracticeTestRepository practiceTestRepository,
+        GamificationService gamificationService,
+        DailyMissionService dailyMissionService
     ) {
         this.deckRepository = deckRepository;
         this.flashcardRepository = flashcardRepository;
         this.practiceTestRepository = practiceTestRepository;
+        this.gamificationService = gamificationService;
+        this.dailyMissionService = dailyMissionService;
     }
 
     public PracticeTestResponse createPracticeTest(Long deckId, CreatePracticeTestRequest request) {
@@ -99,9 +107,12 @@ public class PracticeTestService {
         return toResponse(practiceTest);
     }
 
-    public PracticeTestResponse submit(Long testId) {
+    public PracticeTestResponse submit(Long testId, String userEmail) {
         PracticeTest practiceTest = findPracticeTest(testId);
         practiceTest.submit();
+        gamificationService.recordActivity(userEmail);
+        dailyMissionService.updateMissionProgress(userEmail, "practice_test_completed", 1, 1);
+        gamificationService.awardPoints(userEmail, 20);
         return toResponse(practiceTest);
     }
 

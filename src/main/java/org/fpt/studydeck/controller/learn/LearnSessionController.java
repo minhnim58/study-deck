@@ -1,5 +1,7 @@
 package org.fpt.studydeck.controller.learn;
 
+import java.security.Principal;
+
 import org.fpt.studydeck.dto.learn.CreateLearnSessionRequest;
 import org.fpt.studydeck.dto.learn.LearnAnswerRequest;
 import org.fpt.studydeck.dto.learn.LearnSessionResponse;
@@ -48,7 +50,7 @@ public class LearnSessionController {
     }
 
     @PostMapping("/learn-sessions/{sessionId}/complete")
-    public LearnSessionResponse complete(@PathVariable Long sessionId) {
-        return learnSessionService.complete(sessionId);
+    public LearnSessionResponse complete(@PathVariable Long sessionId, Principal principal) {
+        return learnSessionService.complete(sessionId, principal.getName());
     }
 }

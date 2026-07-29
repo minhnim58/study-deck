@@ -1,5 +1,6 @@
 package org.fpt.studydeck.controller.srs;
 
+import java.security.Principal;
 import java.time.Instant;
 import java.util.List;
 
@@ -57,9 +58,10 @@ public class SrsController {
     @PostMapping("/flashcards/{flashcardId}/srs/reviews")
     public SrsReviewResponse reviewFlashcard(
         @PathVariable Long flashcardId,
-        @Valid @RequestBody SrsReviewRequest request
+        @Valid @RequestBody SrsReviewRequest request,
+        Principal principal
     ) {
-        return srsReviewService.review(flashcardId, request);
+        return srsReviewService.review(flashcardId, request, principal.getName());
     }
 
     @GetMapping("/flashcards/{flashcardId}/srs-state")

@@ -1,5 +1,7 @@
 package org.fpt.studydeck.controller.practice;
 
+import java.security.Principal;
+
 import org.fpt.studydeck.dto.practice.CreatePracticeTestRequest;
 import org.fpt.studydeck.dto.practice.PracticeAnswerRequest;
 import org.fpt.studydeck.dto.practice.PracticeTestResponse;
@@ -48,7 +50,7 @@ public class PracticeTestController {
     }
 
     @PostMapping("/practice-tests/{practiceTestId}/submit")
-    public PracticeTestResponse submit(@PathVariable Long practiceTestId) {
-        return practiceTestService.submit(practiceTestId);
+    public PracticeTestResponse submit(@PathVariable Long practiceTestId, Principal principal) {
+        return practiceTestService.submit(practiceTestId, principal.getName());
     }
 }

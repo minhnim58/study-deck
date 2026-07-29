@@ -32,7 +32,15 @@ public class DailyMissionService {
     public List<DailyMissionResponse> getDailyMissions(String userEmail) {
         UserGamification gamification = gamificationService.getOrCreateForEmail(userEmail);
         LocalDate today = LocalDate.now();
-        return gamificationDailyMissions(gamification, today);
+
+        List<UserDailyMission> existingMissions = userDailyMissionRepository.findByGamificationAndMissionDate(gamification, today);
+        return missionKeys().stream()
+            .map(missionKey -> existingMissions.stream()
+                .filter(mission -> mission.getMissionKey().equals(missionKey))
+                .findFirst()
+                .map(this::toResponse)
+                .orElse(createDefaultMissionResponse(missionKey)))
+            .toList();
     }
 
     public DailyMissionResponse claimDailyMission(String userEmail, String missionKey) {
@@ -67,6 +75,23 @@ public class DailyMissionService {
         }
 
         return userDailyMissionRepository.save(mission);
+    }
+
+    private List<String> missionKeys() {
+        return List.of("practice_test_completed", "learn_session_completed", "srs_reviewed_cards");
+    }
+
+    private DailyMissionResponse createDefaultMissionResponse(String missionKey) {
+        return new DailyMissionResponse(
+            missionKey,
+            missionKey.replace('_', ' '),
+            "Complete this task to earn reward points.",
+            0,
+            getTargetForMission(missionKey),
+            false,
+            false,
+            10L
+        );
     }
 
     private List<DailyMissionResponse> gamificationDailyMissions(UserGamification gamification, LocalDate date) {

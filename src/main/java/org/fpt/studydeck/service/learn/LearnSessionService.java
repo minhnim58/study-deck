@@ -22,6 +22,8 @@ import org.fpt.studydeck.exception.ResourceNotFoundException;
 import org.fpt.studydeck.repository.deck.DeckRepository;
 import org.fpt.studydeck.repository.deck.FlashcardRepository;
 import org.fpt.studydeck.repository.learn.LearnSessionRepository;
+import org.fpt.studydeck.service.gamification.DailyMissionService;
+import org.fpt.studydeck.service.gamification.GamificationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,15 +42,21 @@ public class LearnSessionService {
     private final DeckRepository deckRepository;
     private final FlashcardRepository flashcardRepository;
     private final LearnSessionRepository learnSessionRepository;
+    private final GamificationService gamificationService;
+    private final DailyMissionService dailyMissionService;
 
     public LearnSessionService(
         DeckRepository deckRepository,
         FlashcardRepository flashcardRepository,
-        LearnSessionRepository learnSessionRepository
+        LearnSessionRepository learnSessionRepository,
+        GamificationService gamificationService,
+        DailyMissionService dailyMissionService
     ) {
         this.deckRepository = deckRepository;
         this.flashcardRepository = flashcardRepository;
         this.learnSessionRepository = learnSessionRepository;
+        this.gamificationService = gamificationService;
+        this.dailyMissionService = dailyMissionService;
     }
 
     public LearnSessionResponse createSession(Long deckId, CreateLearnSessionRequest request) {
@@ -107,9 +115,12 @@ public class LearnSessionService {
         return toResponse(session);
     }
 
-    public LearnSessionResponse complete(Long sessionId) {
+    public LearnSessionResponse complete(Long sessionId, String userEmail) {
         LearnSession session = findSession(sessionId);
         session.complete();
+        gamificationService.recordActivity(userEmail);
+        dailyMissionService.updateMissionProgress(userEmail, "learn_session_completed", 1, 1);
+        gamificationService.awardPoints(userEmail, 10);
         return toResponse(session);
     }
 

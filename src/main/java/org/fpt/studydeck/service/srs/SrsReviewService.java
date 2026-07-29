@@ -5,6 +5,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.fpt.studydeck.service.gamification.DailyMissionService;
+import org.fpt.studydeck.service.gamification.GamificationService;
+
 import org.fpt.studydeck.domain.deck.Flashcard;
 import org.fpt.studydeck.domain.srs.SrsCardState;
 import org.fpt.studydeck.domain.srs.SrsRating;
@@ -35,22 +38,28 @@ public class SrsReviewService {
     private final SrsCardStateRepository srsCardStateRepository;
     private final SrsReviewLogRepository srsReviewLogRepository;
     private final FsrsScheduler fsrsScheduler;
+    private final GamificationService gamificationService;
+    private final DailyMissionService dailyMissionService;
 
     public SrsReviewService(
         DeckRepository deckRepository,
         FlashcardRepository flashcardRepository,
         SrsCardStateRepository srsCardStateRepository,
         SrsReviewLogRepository srsReviewLogRepository,
-        FsrsScheduler fsrsScheduler
+        FsrsScheduler fsrsScheduler,
+        GamificationService gamificationService,
+        DailyMissionService dailyMissionService
     ) {
         this.deckRepository = deckRepository;
         this.flashcardRepository = flashcardRepository;
         this.srsCardStateRepository = srsCardStateRepository;
         this.srsReviewLogRepository = srsReviewLogRepository;
         this.fsrsScheduler = fsrsScheduler;
+        this.gamificationService = gamificationService;
+        this.dailyMissionService = dailyMissionService;
     }
 
-    public SrsReviewResponse review(Long flashcardId, SrsReviewRequest request) {
+    public SrsReviewResponse review(Long flashcardId, SrsReviewRequest request, String userEmail) {
         if (request.durationMs() < 0) {
             throw new InvalidRequestException("Duration must be zero or positive.");
         }
@@ -94,6 +103,10 @@ public class SrsReviewService {
             scheduled.dueAt(),
             null
         ));
+
+        gamificationService.recordActivity(userEmail);
+        dailyMissionService.updateMissionProgress(userEmail, "srs_reviewed_cards", 1, 10);
+        gamificationService.awardPoints(userEmail, 2);
 
         return new SrsReviewResponse(flashcardId, request.rating(), scheduled.state(), scheduled.dueAt(), nextReps, nextLapses);
     }
