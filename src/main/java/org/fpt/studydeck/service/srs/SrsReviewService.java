@@ -59,6 +59,10 @@ public class SrsReviewService {
         this.dailyMissionService = dailyMissionService;
     }
 
+    public SrsReviewResponse review(Long flashcardId, SrsReviewRequest request) {
+        return review(flashcardId, request, null);
+    }
+
     public SrsReviewResponse review(Long flashcardId, SrsReviewRequest request, String userEmail) {
         if (request.durationMs() < 0) {
             throw new InvalidRequestException("Duration must be zero or positive.");
@@ -104,9 +108,11 @@ public class SrsReviewService {
             null
         ));
 
-        gamificationService.recordActivity(userEmail);
-        dailyMissionService.updateMissionProgress(userEmail, "srs_reviewed_cards", 1, 10);
-        gamificationService.awardPoints(userEmail, 2);
+        if (userEmail != null && !userEmail.isBlank()) {
+            gamificationService.recordActivity(userEmail);
+            dailyMissionService.updateMissionProgress(userEmail, "srs_reviewed_cards", 1, 10);
+            gamificationService.awardPoints(userEmail, 2);
+        }
 
         return new SrsReviewResponse(flashcardId, request.rating(), scheduled.state(), scheduled.dueAt(), nextReps, nextLapses);
     }

@@ -183,18 +183,34 @@ export function PracticeSessionPage() {
               <Title order={2}>{currentQuestion.prompt}</Title>
             </Stack>
 
-            <TextInput
-              label={`Answer for question ${currentIndex + 1}`}
-              value={answer}
-              disabled={controlsDisabled}
-              onChange={(event) => setAnswer(event.currentTarget.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  void saveCurrentAnswer(true);
-                }
-              }}
-            />
+            {currentQuestion.questionType === 'MULTIPLE_CHOICE' || currentQuestion.questionType === 'TRUE_FALSE' ? (
+              <Stack gap="xs">
+                {currentQuestion.options?.map((option) => (
+                  <Button
+                    key={option}
+                    variant={answer === option ? 'filled' : 'outline'}
+                    onClick={() => setAnswer(option)}
+                    disabled={controlsDisabled}
+                    justify="center"
+                  >
+                    {option}
+                  </Button>
+                ))}
+              </Stack>
+            ) : (
+              <TextInput
+                label={`Answer for question ${currentIndex + 1}`}
+                value={answer}
+                disabled={controlsDisabled}
+                onChange={(event) => setAnswer(event.currentTarget.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    void saveCurrentAnswer(true);
+                  }
+                }}
+              />
+            )}
 
             <Group justify="space-between">
               <Group gap="xs">

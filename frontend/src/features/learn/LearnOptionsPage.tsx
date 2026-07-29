@@ -1,8 +1,10 @@
 import { Alert, Button, Checkbox, Group, NumberInput, Paper, Stack, Title } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { IconAlertCircle, IconArrowLeft, IconPlayerPlay } from '@tabler/icons-react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { getDeck } from '../../api/deckApi';
 import { createLearnSession } from '../../api/learnApi';
 import type { CreateLearnSessionRequest } from '../../api/types';
 import { ModeShell } from '../../components/ModeShell';
@@ -25,6 +27,19 @@ export function LearnOptionsPage() {
       lengthOfRounds: (value) => (value < 1 ? 'Choose at least one item' : null),
     },
   });
+  const deckQuery = useQuery({
+    queryKey: ['deck', parsedDeckId],
+    queryFn: () => getDeck(parsedDeckId),
+    enabled: Number.isFinite(parsedDeckId),
+  });
+
+  useEffect(() => {
+    if (deckQuery.data?.totalCards) {
+      form.setFieldValue('lengthOfRounds', deckQuery.data.totalCards);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deckQuery.data?.totalCards]);
+
   const startSession = useMutation({
     mutationFn: (values: CreateLearnSessionRequest) => createLearnSession(parsedDeckId, values),
     onSuccess: (session) => navigate(`/learn-sessions/${session.id}`),
@@ -46,7 +61,13 @@ export function LearnOptionsPage() {
       <Paper withBorder radius="sm" p="lg">
         <form onSubmit={form.onSubmit((values) => startSession.mutate(values))}>
           <Stack gap="lg">
-            <NumberInput label="Round length" min={1} max={100} allowDecimal={false} {...form.getInputProps('lengthOfRounds')} />
+            <NumberInput
+              label="Round length"
+              min={1}
+              max={deckQuery.data?.totalCards ?? 100}
+              allowDecimal={false}
+              {...form.getInputProps('lengthOfRounds')}
+            />
 
             <Stack gap="xs">
               <Title order={3}>Question types</Title>

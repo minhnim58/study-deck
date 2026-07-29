@@ -22,7 +22,7 @@ public class ViewerCardController {
 
     @GetMapping("/decks/{deckId}/viewer-cards")
     public List<ViewerCardResponse> getCards(
-        @PathVariable Long deckId,
+        @PathVariable("deckId") Long deckId,
         @RequestParam(required = false) String sort,
         @RequestParam(required = false) String mode
     ) {

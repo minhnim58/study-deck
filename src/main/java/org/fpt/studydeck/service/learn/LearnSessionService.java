@@ -46,12 +46,11 @@ public class LearnSessionService {
     private final DailyMissionService dailyMissionService;
 
     public LearnSessionService(
-        DeckRepository deckRepository,
-        FlashcardRepository flashcardRepository,
-        LearnSessionRepository learnSessionRepository,
-        GamificationService gamificationService,
-        DailyMissionService dailyMissionService
-    ) {
+            DeckRepository deckRepository,
+            FlashcardRepository flashcardRepository,
+            LearnSessionRepository learnSessionRepository,
+            GamificationService gamificationService,
+            DailyMissionService dailyMissionService) {
         this.deckRepository = deckRepository;
         this.flashcardRepository = flashcardRepository;
         this.learnSessionRepository = learnSessionRepository;
@@ -61,10 +60,10 @@ public class LearnSessionService {
 
     public LearnSessionResponse createSession(Long deckId, CreateLearnSessionRequest request) {
         Deck deck = deckRepository.findById(deckId)
-            .orElseThrow(() -> new ResourceNotFoundException(DECK_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(DECK_NOT_FOUND));
         CreateLearnSessionRequest effectiveRequest = request == null
-            ? new CreateLearnSessionRequest(0, true, false, false, false, false, false)
-            : request;
+                ? new CreateLearnSessionRequest(0, true, false, false, false, false, false)
+                : request;
         if (effectiveRequest.lengthOfRounds() < 0) {
             throw new InvalidRequestException(NEGATIVE_LENGTH);
         }
@@ -75,8 +74,8 @@ public class LearnSessionService {
         }
 
         List<Flashcard> flashcards = effectiveRequest.starredOnly()
-            ? flashcardRepository.findByDeckIdAndStarredTrueOrderByPositionAscIdAsc(deckId)
-            : flashcardRepository.findByDeckIdOrderByPositionAscIdAsc(deckId);
+                ? flashcardRepository.findByDeckIdAndStarredTrueOrderByPositionAscIdAsc(deckId)
+                : flashcardRepository.findByDeckIdOrderByPositionAscIdAsc(deckId);
         if (flashcards.isEmpty()) {
             throw new InvalidRequestException(NO_CARDS_AVAILABLE);
         }
@@ -90,14 +89,16 @@ public class LearnSessionService {
         }
 
         LearnSession session = learnSessionRepository.save(
-            LearnSession.create(deck, settingsJson(effectiveRequest), selectedCards, questionTypes)
-        );
-        return toResponse(session);
+                LearnSession.create(deck, settingsJson(effectiveRequest), selectedCards, questionTypes));
+        return toResponse(session, flashcards);
     }
 
     @Transactional(readOnly = true)
     public LearnSessionResponse getSession(Long sessionId) {
-        return toResponse(findSession(sessionId));
+        LearnSession session = findSession(sessionId);
+        List<Flashcard> allCards = flashcardRepository.findByDeckIdOrderByPositionAscIdAsc(
+                session.getDeck().getId());
+        return toResponse(session, allCards);
     }
 
     public LearnSessionResponse answer(Long sessionId, LearnAnswerRequest request) {
@@ -107,66 +108,146 @@ public class LearnSessionService {
         }
 
         LearnSessionItem item = session.getItems().stream()
-            .filter(candidate -> candidate.getId().equals(request.itemId()))
-            .findFirst()
-            .orElseThrow(() -> new ResourceNotFoundException(ITEM_NOT_FOUND));
+                .filter(candidate -> candidate.getId().equals(request.itemId()))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException(ITEM_NOT_FOUND));
 
         item.answer(matchesExpectedAnswer(item, request.answer()));
-        return toResponse(session);
+        List<Flashcard> allCards = flashcardRepository.findByDeckIdOrderByPositionAscIdAsc(
+                session.getDeck().getId());
+        return toResponse(session, allCards);
+    }
+
+    public LearnSessionResponse complete(Long sessionId) {
+        return complete(sessionId, null);
     }
 
     public LearnSessionResponse complete(Long sessionId, String userEmail) {
         LearnSession session = findSession(sessionId);
         session.complete();
-        gamificationService.recordActivity(userEmail);
-        dailyMissionService.updateMissionProgress(userEmail, "learn_session_completed", 1, 1);
-        gamificationService.awardPoints(userEmail, 10);
-        return toResponse(session);
+        if (userEmail != null && !userEmail.isBlank()) {
+            gamificationService.recordActivity(userEmail);
+            dailyMissionService.updateMissionProgress(userEmail, "learn_session_completed", 1, 1);
+            gamificationService.awardPoints(userEmail, 10);
+        }
+        List<Flashcard> allCards = flashcardRepository.findByDeckIdOrderByPositionAscIdAsc(
+                session.getDeck().getId());
+        return toResponse(session, allCards);
     }
 
     private LearnSession findSession(Long sessionId) {
         return learnSessionRepository.findById(sessionId)
-            .orElseThrow(() -> new ResourceNotFoundException(SESSION_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(SESSION_NOT_FOUND));
     }
 
-    private LearnSessionResponse toResponse(LearnSession session) {
+    private LearnSessionResponse toResponse(LearnSession session, List<Flashcard> allCards) {
         List<LearnSessionItem> orderedItems = orderedItems(session);
         return new LearnSessionResponse(
-            session.getId(),
-            session.getStatus().name(),
-            orderedItems.size(),
-            countCorrect(session),
-            countWrong(session),
-            orderedItems.stream().map(LearnSessionItemResponse::from).toList()
-        );
+                session.getId(),
+                session.getStatus().name(),
+                orderedItems.size(),
+                countCorrect(session),
+                countWrong(session),
+                orderedItems.stream()
+                        .map(item -> {
+                            if (item.getQuestionType() == LearnQuestionType.TRUE_FALSE) {
+                                return buildTrueFalseResponse(item, allCards);
+                            }
+                            return LearnSessionItemResponse.from(item, generateOptions(item, allCards));
+                        })
+                        .toList());
+    }
+
+    private LearnSessionItemResponse buildTrueFalseResponse(LearnSessionItem item, List<Flashcard> allCards) {
+        var flashcard = item.getFlashcard();
+        String shownDefinition;
+        String correctAnswer;
+        if (item.isTrueFalseCorrectValue()) {
+            // TRUE question: show the correct definition
+            shownDefinition = flashcard.getDefinition();
+            correctAnswer = "true";
+        } else {
+            // FALSE question: show a wrong definition from another card
+            shownDefinition = pickRandomWrongAnswer(allCards, flashcard);
+            correctAnswer = "false";
+        }
+        return new LearnSessionItemResponse(
+                item.getId(),
+                flashcard.getId(),
+                item.getQuestionType(),
+                item.getPromptSide(),
+                flashcard.getTerm() + " = " + shownDefinition,
+                correctAnswer,
+                List.of("True", "False"),
+                item.getAttempts());
+    }
+
+    private String pickRandomWrongAnswer(List<Flashcard> allCards, Flashcard currentCard) {
+        List<String> candidates = new ArrayList<>();
+        for (Flashcard card : allCards) {
+            if (!card.getId().equals(currentCard.getId())) {
+                candidates.add(card.getDefinition());
+            }
+        }
+        if (candidates.isEmpty()) {
+            return currentCard.getDefinition(); // fallback if only 1 card
+        }
+        Collections.shuffle(candidates);
+        return candidates.get(0);
+    }
+
+    private List<String> generateOptions(LearnSessionItem item, List<Flashcard> allCards) {
+        if (item.getQuestionType() != LearnQuestionType.MULTIPLE_CHOICE) {
+            return List.of();
+        }
+
+        boolean useDefinitions = item.getPromptSide() == PromptSide.TERM;
+        String correctAnswer = useDefinitions
+                ? item.getFlashcard().getDefinition()
+                : item.getFlashcard().getTerm();
+
+        List<String> distractors = new ArrayList<>();
+        for (Flashcard card : allCards) {
+            String candidateAnswer = useDefinitions ? card.getDefinition() : card.getTerm();
+            if (!candidateAnswer.equalsIgnoreCase(correctAnswer) && !distractors.contains(candidateAnswer)) {
+                distractors.add(candidateAnswer);
+            }
+        }
+        Collections.shuffle(distractors);
+        int distractorCount = Math.min(3, distractors.size());
+        List<String> options = new ArrayList<>(distractors.subList(0, distractorCount));
+        options.add(correctAnswer);
+        Collections.shuffle(options);
+        return options;
     }
 
     private int countCorrect(LearnSession session) {
         return session.getItems().stream()
-            .mapToInt(LearnSessionItem::getCorrectCount)
-            .sum();
+                .mapToInt(LearnSessionItem::getCorrectCount)
+                .sum();
     }
 
     private int countWrong(LearnSession session) {
         return session.getItems().stream()
-            .mapToInt(LearnSessionItem::getWrongCount)
-            .sum();
+                .mapToInt(LearnSessionItem::getWrongCount)
+                .sum();
     }
 
     private List<LearnSessionItem> orderedItems(LearnSession session) {
         return session.getItems().stream()
-            .sorted(Comparator.comparingInt(LearnSessionItem::getPosition))
-            .toList();
+                .sorted(Comparator.comparingInt(LearnSessionItem::getPosition))
+                .toList();
     }
 
     private boolean matchesExpectedAnswer(LearnSessionItem item, String submitted) {
         if (item.getQuestionType() == LearnQuestionType.TRUE_FALSE) {
-            return submitted != null && "true".equalsIgnoreCase(submitted.trim());
+            String expectedTfAnswer = item.isTrueFalseCorrectValue() ? "true" : "false";
+            return submitted != null && expectedTfAnswer.equalsIgnoreCase(submitted.trim());
         }
 
         String expected = item.getPromptSide() == PromptSide.TERM
-            ? item.getFlashcard().getDefinition()
-            : item.getFlashcard().getTerm();
+                ? item.getFlashcard().getDefinition()
+                : item.getFlashcard().getTerm();
         return submitted != null && submitted.trim().equalsIgnoreCase(expected.trim());
     }
 
@@ -189,16 +270,15 @@ public class LearnSessionService {
 
     private String settingsJson(CreateLearnSessionRequest request) {
         return """
-            {"lengthOfRounds":%d,"flashcards":%s,"multipleChoice":%s,"written":%s,"trueFalse":%s,"starredOnly":%s,"shuffleTerms":%s}"""
-            .formatted(
-                request.lengthOfRounds(),
-                request.flashcards(),
-                request.multipleChoice(),
-                request.written(),
-                request.trueFalse(),
-                request.starredOnly(),
-                request.shuffleTerms()
-            );
+                {"lengthOfRounds":%d,"flashcards":%s,"multipleChoice":%s,"written":%s,"trueFalse":%s,"starredOnly":%s,"shuffleTerms":%s}"""
+                .formatted(
+                        request.lengthOfRounds(),
+                        request.flashcards(),
+                        request.multipleChoice(),
+                        request.written(),
+                        request.trueFalse(),
+                        request.starredOnly(),
+                        request.shuffleTerms());
     }
 
     private void shuffle(List<Flashcard> cards) {

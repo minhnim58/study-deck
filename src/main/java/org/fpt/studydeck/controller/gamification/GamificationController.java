@@ -4,6 +4,7 @@ import java.security.Principal;
 import java.util.List;
 
 import org.fpt.studydeck.dto.gamification.DailyMissionResponse;
+import org.fpt.studydeck.dto.gamification.DailyMissionStatusResponse;
 import org.fpt.studydeck.dto.gamification.UserGamificationResponse;
 import org.fpt.studydeck.service.gamification.DailyMissionService;
 import org.fpt.studydeck.service.gamification.GamificationService;
@@ -39,8 +40,8 @@ public class GamificationController {
     }
 
     @PostMapping("/daily-missions/{missionKey}/claim")
-    public DailyMissionResponse claimDailyMission(
-        @PathVariable String missionKey,
+    public DailyMissionStatusResponse claimDailyMission(
+        @PathVariable("missionKey") String missionKey,
         Principal principal
     ) {
         return dailyMissionService.claimDailyMission(principal.getName(), missionKey);

@@ -31,8 +31,8 @@ public class DeckController {
     @GetMapping("/decks")
     public List<DeckResponse> listDecks() {
         return deckService.listDecks().stream()
-            .map(DeckResponse::from)
-            .toList();
+                .map(DeckResponse::from)
+                .toList();
     }
 
     @PostMapping("/decks")
@@ -42,31 +42,31 @@ public class DeckController {
     }
 
     @GetMapping("/decks/{deckId}")
-    public DeckResponse getDeck(@PathVariable Long deckId) {
+    public DeckResponse getDeck(@PathVariable("deckId") Long deckId) {
         return DeckResponse.from(deckService.getDeck(deckId));
     }
 
     @PatchMapping("/decks/{deckId}")
     public DeckResponse updateDeck(
-        @PathVariable Long deckId,
-        @Valid @RequestBody UpdateDeckRequest request
-    ) {
+            @PathVariable("deckId") Long deckId,
+            @Valid @RequestBody UpdateDeckRequest request) {
         return DeckResponse.from(deckService.updateDeck(deckId, request.title(), request.description()));
     }
 
     @DeleteMapping("/decks/{deckId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteDeck(@PathVariable Long deckId) {
+    public void deleteDeck(@PathVariable("deckId") Long deckId) {
         deckService.deleteDeck(deckId);
     }
 
     @PostMapping("/folders/{folderId}/decks/{deckId}")
-    public DeckResponse moveDeckToFolder(@PathVariable Long folderId, @PathVariable Long deckId) {
+    public DeckResponse moveDeckToFolder(@PathVariable("folderId") Long folderId, @PathVariable("deckId") Long deckId) {
         return DeckResponse.from(deckService.moveDeckToFolder(folderId, deckId));
     }
 
     @DeleteMapping("/folders/{folderId}/decks/{deckId}")
-    public DeckResponse removeDeckFromFolder(@PathVariable Long folderId, @PathVariable Long deckId) {
+    public DeckResponse removeDeckFromFolder(@PathVariable("folderId") Long folderId,
+            @PathVariable("deckId") Long deckId) {
         return DeckResponse.from(deckService.removeDeckFromFolder(folderId, deckId));
     }
 }

@@ -1,5 +1,6 @@
 package org.fpt.studydeck.domain.gamification;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 import jakarta.persistence.Column;
@@ -39,6 +40,9 @@ public class UserDailyMission {
     @Column(nullable = false)
     private boolean claimed;
 
+    @Column
+    private Instant claimedAt;
+
     protected UserDailyMission() {
     }
 
@@ -50,6 +54,7 @@ public class UserDailyMission {
         mission.progress = 0;
         mission.completed = false;
         mission.claimed = false;
+        mission.claimedAt = null;
         return mission;
     }
 
@@ -91,5 +96,13 @@ public class UserDailyMission {
 
     public void setClaimed(boolean claimed) {
         this.claimed = claimed;
+    }
+
+    public Instant getClaimedAt() {
+        return claimedAt;
+    }
+
+    public void setClaimedAt(Instant claimedAt) {
+        this.claimedAt = claimedAt;
     }
 }

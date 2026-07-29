@@ -30,27 +30,27 @@ public class PracticeTestController {
     @PostMapping("/decks/{deckId}/practice-tests")
     @ResponseStatus(HttpStatus.CREATED)
     public PracticeTestResponse createPracticeTest(
-        @PathVariable Long deckId,
+        @PathVariable("deckId") Long deckId,
         @Valid @RequestBody CreatePracticeTestRequest request
     ) {
         return practiceTestService.createPracticeTest(deckId, request);
     }
 
     @GetMapping("/practice-tests/{practiceTestId}")
-    public PracticeTestResponse getPracticeTest(@PathVariable Long practiceTestId) {
+    public PracticeTestResponse getPracticeTest(@PathVariable("practiceTestId") Long practiceTestId) {
         return practiceTestService.getPracticeTest(practiceTestId);
     }
 
     @PostMapping("/practice-tests/{practiceTestId}/answers")
     public PracticeTestResponse answer(
-        @PathVariable Long practiceTestId,
+        @PathVariable("practiceTestId") Long practiceTestId,
         @Valid @RequestBody PracticeAnswerRequest request
     ) {
         return practiceTestService.answer(practiceTestId, request);
     }
 
     @PostMapping("/practice-tests/{practiceTestId}/submit")
-    public PracticeTestResponse submit(@PathVariable Long practiceTestId, Principal principal) {
+    public PracticeTestResponse submit(@PathVariable("practiceTestId") Long practiceTestId, Principal principal) {
         return practiceTestService.submit(practiceTestId, principal.getName());
     }
 }

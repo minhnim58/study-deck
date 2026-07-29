@@ -35,29 +35,29 @@ public class SrsController {
     }
 
     @GetMapping("/decks/{deckId}/srs/due")
-    public List<SrsDueCardResponse> dueCards(@PathVariable Long deckId) {
+    public List<SrsDueCardResponse> dueCards(@PathVariable("deckId") Long deckId) {
         return srsReviewService.dueCards(deckId, Instant.now());
     }
 
     @PostMapping("/decks/{deckId}/srs/review-sessions")
     @ResponseStatus(HttpStatus.CREATED)
-    public List<SrsDueCardResponse> createReviewSession(@PathVariable Long deckId) {
+    public List<SrsDueCardResponse> createReviewSession(@PathVariable("deckId") Long deckId) {
         return srsReviewService.dueCards(deckId, Instant.now());
     }
 
     @GetMapping("/srs/review-sessions/{sessionId}")
-    public void getReviewSession(@PathVariable Long sessionId) {
+    public void getReviewSession(@PathVariable("sessionId") Long sessionId) {
         throw new InvalidRequestException("SRS review sessions are not persisted in MVP.");
     }
 
     @PostMapping("/srs/review-sessions/{sessionId}/reviews")
-    public void reviewSessionCard(@PathVariable Long sessionId) {
+    public void reviewSessionCard(@PathVariable("sessionId") Long sessionId) {
         throw new InvalidRequestException("SRS review sessions are not persisted in MVP.");
     }
 
     @PostMapping("/flashcards/{flashcardId}/srs/reviews")
     public SrsReviewResponse reviewFlashcard(
-        @PathVariable Long flashcardId,
+        @PathVariable("flashcardId") Long flashcardId,
         @Valid @RequestBody SrsReviewRequest request,
         Principal principal
     ) {
@@ -65,12 +65,12 @@ public class SrsController {
     }
 
     @GetMapping("/flashcards/{flashcardId}/srs-state")
-    public SrsCardStateResponse getState(@PathVariable Long flashcardId) {
+    public SrsCardStateResponse getState(@PathVariable("flashcardId") Long flashcardId) {
         return srsReviewService.getState(flashcardId);
     }
 
     @GetMapping("/decks/{deckId}/srs/stats")
-    public SrsStatsResponse stats(@PathVariable Long deckId) {
+    public SrsStatsResponse stats(@PathVariable("deckId") Long deckId) {
         return srsStatsService.stats(deckId);
     }
 }

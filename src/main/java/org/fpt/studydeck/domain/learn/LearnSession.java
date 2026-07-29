@@ -57,11 +57,10 @@ public class LearnSession {
     }
 
     public static LearnSession create(
-        Deck deck,
-        String settingsJson,
-        List<Flashcard> flashcards,
-        List<LearnQuestionType> questionTypes
-    ) {
+            Deck deck,
+            String settingsJson,
+            List<Flashcard> flashcards,
+            List<LearnQuestionType> questionTypes) {
         if (deck == null) {
             throw new IllegalArgumentException("Deck is required.");
         }
@@ -74,13 +73,19 @@ public class LearnSession {
         session.updatedAt = session.startedAt;
         for (int position = 0; position < flashcards.size(); position++) {
             LearnQuestionType questionType = questionTypes.get(position % questionTypes.size());
-            session.addItem(flashcards.get(position), questionType, PromptSide.TERM, position);
+            boolean trueFalseCorrectValue = true;
+            if (questionType == LearnQuestionType.TRUE_FALSE && flashcards.size() > 1) {
+                // Randomly decide if this should be a FALSE question (~50% chance)
+                trueFalseCorrectValue = Math.random() >= 0.5;
+            }
+            session.addItem(flashcards.get(position), questionType, PromptSide.TERM, position, trueFalseCorrectValue);
         }
         return session;
     }
 
-    private void addItem(Flashcard flashcard, LearnQuestionType questionType, PromptSide promptSide, int position) {
-        items.add(LearnSessionItem.create(this, flashcard, questionType, promptSide, position));
+    private void addItem(Flashcard flashcard, LearnQuestionType questionType, PromptSide promptSide, int position,
+            boolean trueFalseCorrectValue) {
+        items.add(LearnSessionItem.create(this, flashcard, questionType, promptSide, position, trueFalseCorrectValue));
     }
 
     public void complete() {

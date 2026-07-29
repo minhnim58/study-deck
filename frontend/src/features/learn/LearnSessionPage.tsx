@@ -146,29 +146,37 @@ export function LearnSessionPage() {
               <Title order={2}>{currentItem.prompt}</Title>
             </Stack>
 
-            <TextInput
-              label="Your answer"
-              value={answer}
-              disabled={Boolean(feedback) || answerMutation.isPending}
-              onChange={(event) => setAnswer(event.currentTarget.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  checkAnswer();
-                }
-              }}
-            />
-
-            {currentItem.questionType === 'TRUE_FALSE' ? (
-              <Group>
-                <Button variant="light" disabled={Boolean(feedback)} onClick={() => checkAnswer('true')}>
-                  True
-                </Button>
-                <Button variant="light" disabled={Boolean(feedback)} onClick={() => checkAnswer('false')}>
-                  False
-                </Button>
-              </Group>
-            ) : null}
+            {currentItem.questionType === 'MULTIPLE_CHOICE' || currentItem.questionType === 'TRUE_FALSE' ? (
+              <Stack gap="xs">
+                {currentItem.options?.map((option) => (
+                  <Button
+                    key={option}
+                    variant="light"
+                    onClick={() => {
+                      setAnswer(option);
+                      checkAnswer(option);
+                    }}
+                    disabled={Boolean(feedback) || answerMutation.isPending}
+                    justify="center"
+                  >
+                    {option}
+                  </Button>
+                ))}
+              </Stack>
+            ) : (
+              <TextInput
+                label="Your answer"
+                value={answer}
+                disabled={Boolean(feedback) || answerMutation.isPending}
+                onChange={(event) => setAnswer(event.currentTarget.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    checkAnswer();
+                  }
+                }}
+              />
+            )}
 
             {feedback ? (
               <Alert color={feedback.correct ? 'green' : 'red'} icon={feedback.correct ? <IconCheck size={18} /> : <IconX size={18} />} title={feedback.correct ? 'Correct' : 'Incorrect'}>

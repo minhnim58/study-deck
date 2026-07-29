@@ -1,8 +1,10 @@
 import { Alert, Button, Checkbox, Group, NumberInput, Paper, Stack, Title } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { IconAlertCircle, IconArrowLeft, IconPlayerPlay } from '@tabler/icons-react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { getDeck } from '../../api/deckApi';
 import { createPracticeTest } from '../../api/practiceApi';
 import type { CreatePracticeTestRequest } from '../../api/types';
 import { ModeShell } from '../../components/ModeShell';
@@ -25,6 +27,19 @@ export function PracticeOptionsPage() {
       questionCount: (value) => (value < 1 ? 'Choose at least one question' : null),
     },
   });
+  const deckQuery = useQuery({
+    queryKey: ['deck', parsedDeckId],
+    queryFn: () => getDeck(parsedDeckId),
+    enabled: Number.isFinite(parsedDeckId),
+  });
+
+  useEffect(() => {
+    if (deckQuery.data?.totalCards) {
+      form.setFieldValue('questionCount', deckQuery.data.totalCards);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deckQuery.data?.totalCards]);
+
   const startTest = useMutation({
     mutationFn: (values: CreatePracticeTestRequest) => createPracticeTest(parsedDeckId, values),
     onSuccess: (test) => navigate(`/practice-tests/${test.id}`),
@@ -46,7 +61,13 @@ export function PracticeOptionsPage() {
       <Paper withBorder radius="sm" p="lg">
         <form onSubmit={form.onSubmit((values) => startTest.mutate(values))}>
           <Stack gap="lg">
-            <NumberInput label="Question count" min={1} max={100} allowDecimal={false} {...form.getInputProps('questionCount')} />
+            <NumberInput
+              label="Question count"
+              min={1}
+              max={deckQuery.data?.totalCards ?? 100}
+              allowDecimal={false}
+              {...form.getInputProps('questionCount')}
+            />
 
             <Stack gap="xs">
               <Title order={3}>Question types</Title>

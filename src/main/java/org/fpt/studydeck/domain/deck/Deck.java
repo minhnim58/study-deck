@@ -2,6 +2,8 @@ package org.fpt.studydeck.domain.deck;
 
 import java.time.Instant;
 
+import org.hibernate.annotations.Formula;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -35,6 +37,9 @@ public class Deck {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private DeckVisibility visibility = DeckVisibility.PRIVATE;
+
+    @Formula("(SELECT COUNT(*) FROM flashcards f WHERE f.deck_id = id)")
+    private int totalCards;
 
     @Column(nullable = false)
     private Instant createdAt;
@@ -93,6 +98,10 @@ public class Deck {
 
     public DeckVisibility getVisibility() {
         return visibility;
+    }
+
+    public int getTotalCards() {
+        return totalCards;
     }
 
     public Instant getCreatedAt() {

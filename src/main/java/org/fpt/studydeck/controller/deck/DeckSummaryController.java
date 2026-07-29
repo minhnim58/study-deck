@@ -18,7 +18,7 @@ public class DeckSummaryController {
     }
 
     @GetMapping("/decks/{deckId}/summary")
-    public DeckSummaryResponse getSummary(@PathVariable Long deckId) {
+    public DeckSummaryResponse getSummary(@PathVariable("deckId") Long deckId) {
         return deckSummaryService.getSummary(deckId);
     }
 }

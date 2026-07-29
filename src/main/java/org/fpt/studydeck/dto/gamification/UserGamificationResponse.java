@@ -8,15 +8,24 @@ public record UserGamificationResponse(
     long points,
     int level,
     int streakCount,
-    Instant lastActiveAt
+    Instant lastActiveAt,
+    int nextLevelProgress,
+    long nextLevelRequiredPoints
 ) {
 
     public static UserGamificationResponse from(UserGamification gamification) {
+        long requiredPoints = gamification.getLevel() * 100L;
+        int nextLevelProgress = requiredPoints <= 0
+            ? 100
+            : (int) Math.min(100, Math.round((double) gamification.getPoints() / requiredPoints * 100));
+
         return new UserGamificationResponse(
             gamification.getPoints(),
             gamification.getLevel(),
             gamification.getStreakCount(),
-            gamification.getLastActiveAt()
+            gamification.getLastActiveAt(),
+            nextLevelProgress,
+            requiredPoints
         );
     }
 }

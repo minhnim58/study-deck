@@ -31,8 +31,8 @@ public class FolderController {
     @GetMapping
     public List<FolderResponse> listFolders() {
         return folderService.listFolders().stream()
-            .map(FolderResponse::from)
-            .toList();
+                .map(FolderResponse::from)
+                .toList();
     }
 
     @PostMapping
@@ -42,21 +42,20 @@ public class FolderController {
     }
 
     @GetMapping("/{folderId}")
-    public FolderResponse getFolder(@PathVariable Long folderId) {
+    public FolderResponse getFolder(@PathVariable("folderId") Long folderId) {
         return FolderResponse.from(folderService.getFolder(folderId));
     }
 
     @PatchMapping("/{folderId}")
     public FolderResponse updateFolder(
-        @PathVariable Long folderId,
-        @Valid @RequestBody UpdateFolderRequest request
-    ) {
+            @PathVariable("folderId") Long folderId,
+            @Valid @RequestBody UpdateFolderRequest request) {
         return FolderResponse.from(folderService.updateFolder(folderId, request.name(), request.description()));
     }
 
     @DeleteMapping("/{folderId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteFolder(@PathVariable Long folderId) {
+    public void deleteFolder(@PathVariable("folderId") Long folderId) {
         folderService.deleteFolder(folderId);
     }
 }

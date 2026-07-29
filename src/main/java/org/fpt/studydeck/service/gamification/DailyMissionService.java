@@ -1,13 +1,13 @@
 package org.fpt.studydeck.service.gamification;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.fpt.studydeck.domain.gamification.UserDailyMission;
 import org.fpt.studydeck.domain.gamification.UserGamification;
 import org.fpt.studydeck.dto.gamification.DailyMissionResponse;
-import org.fpt.studydeck.exception.ResourceNotFoundException;
+import org.fpt.studydeck.dto.gamification.DailyMissionStatusResponse;
 import org.fpt.studydeck.repository.gamification.UserDailyMissionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,8 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class DailyMissionService {
-
-    private static final String MISSION_NOT_FOUND = "Daily mission was not found.";
 
     private final GamificationService gamificationService;
     private final UserDailyMissionRepository userDailyMissionRepository;
@@ -43,7 +41,7 @@ public class DailyMissionService {
             .toList();
     }
 
-    public DailyMissionResponse claimDailyMission(String userEmail, String missionKey) {
+    public DailyMissionStatusResponse claimDailyMission(String userEmail, String missionKey) {
         UserGamification gamification = gamificationService.getOrCreateForEmail(userEmail);
         LocalDate today = LocalDate.now();
         UserDailyMission mission = findOrCreateMission(gamification, missionKey, today);
@@ -53,10 +51,17 @@ public class DailyMissionService {
         }
 
         mission.setClaimed(true);
+        mission.setClaimedAt(Instant.now());
         userDailyMissionRepository.save(mission);
         gamificationService.awardPoints(gamification.getUser().getId(), getRewardForMission(missionKey));
 
-        return toResponse(mission);
+        return new DailyMissionStatusResponse(
+            mission.getMissionKey(),
+            missionStatus(mission),
+            mission.getProgress(),
+            getTargetForMission(missionKey),
+            mission.getClaimedAt()
+        );
     }
 
     public UserDailyMission updateMissionProgress(String userEmail, String missionKey, int delta, int target) {
@@ -75,7 +80,10 @@ public class DailyMissionService {
     private UserDailyMission findOrCreateMission(UserGamification gamification, String missionKey, LocalDate date) {
         return userDailyMissionRepository
             .findByGamificationAndMissionKeyAndMissionDate(gamification, missionKey, date)
-            .orElseGet(() -> userDailyMissionRepository.save(UserDailyMission.create(gamification, missionKey, date)));
+            .orElseGet(() -> {
+                UserDailyMission created = UserDailyMission.create(gamification, missionKey, date);
+                return userDailyMissionRepository.save(created);
+            });
     }
 
     private List<String> missionKeys() {
@@ -87,11 +95,11 @@ public class DailyMissionService {
             missionKey,
             getTitleForMission(missionKey),
             getDescriptionForMission(missionKey),
-            0,
             getTargetForMission(missionKey),
-            false,
-            false,
-            getRewardForMission(missionKey)
+            0,
+            getRewardForMission(missionKey),
+            "IN_PROGRESS",
+            null
         );
     }
 
@@ -122,23 +130,27 @@ public class DailyMissionService {
         };
     }
 
-    private List<DailyMissionResponse> gamificationDailyMissions(UserGamification gamification, LocalDate date) {
-        return userDailyMissionRepository.findByGamificationAndMissionDate(gamification, date).stream()
-            .map(this::toResponse)
-            .collect(Collectors.toList());
-    }
-
     private DailyMissionResponse toResponse(UserDailyMission mission) {
         return new DailyMissionResponse(
             mission.getMissionKey(),
             getTitleForMission(mission.getMissionKey()),
             getDescriptionForMission(mission.getMissionKey()),
-            mission.getProgress(),
             getTargetForMission(mission.getMissionKey()),
-            mission.isCompleted(),
-            mission.isClaimed(),
-            getRewardForMission(mission.getMissionKey())
+            mission.getProgress(),
+            getRewardForMission(mission.getMissionKey()),
+            missionStatus(mission),
+            mission.getClaimedAt()
         );
+    }
+
+    private String missionStatus(UserDailyMission mission) {
+        if (mission.isClaimed()) {
+            return "CLAIMED";
+        }
+        if (mission.isCompleted()) {
+            return "COMPLETED";
+        }
+        return "IN_PROGRESS";
     }
 
     private int getTargetForMission(String missionKey) {

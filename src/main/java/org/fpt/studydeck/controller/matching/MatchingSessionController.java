@@ -28,27 +28,27 @@ public class MatchingSessionController {
     @PostMapping("/decks/{deckId}/matching-sessions")
     @ResponseStatus(HttpStatus.CREATED)
     public MatchingSessionResponse createSession(
-        @PathVariable Long deckId,
+        @PathVariable("deckId") Long deckId,
         @Valid @RequestBody CreateMatchingSessionRequest request
     ) {
         return matchingSessionService.createSession(deckId, request);
     }
 
     @GetMapping("/matching-sessions/{sessionId}")
-    public MatchingSessionResponse getSession(@PathVariable Long sessionId) {
+    public MatchingSessionResponse getSession(@PathVariable("sessionId") Long sessionId) {
         return matchingSessionService.getSession(sessionId);
     }
 
     @PostMapping("/matching-sessions/{sessionId}/matches")
     public MatchingSessionResponse match(
-        @PathVariable Long sessionId,
+        @PathVariable("sessionId") Long sessionId,
         @Valid @RequestBody MatchingAnswerRequest request
     ) {
         return matchingSessionService.match(sessionId, request);
     }
 
     @PostMapping("/matching-sessions/{sessionId}/complete")
-    public MatchingSessionResponse complete(@PathVariable Long sessionId) {
+    public MatchingSessionResponse complete(@PathVariable("sessionId") Long sessionId) {
         return matchingSessionService.complete(sessionId);
     }
 }

@@ -295,7 +295,12 @@ export function LibraryPage() {
                     </Text>
                   ) : null}
                   <Group justify="space-between">
-                    <Badge variant="light">{deck.visibility}</Badge>
+                    <Group gap="xs">
+                      <Badge variant="light">{deck.visibility}</Badge>
+                      <Badge variant="outline" color="gray">
+                        {deck.totalCards} cards
+                      </Badge>
+                    </Group>
                     <Button component={Link} to={`/decks/${deck.id}`} variant="light" size="xs">
                       Open
                     </Button>

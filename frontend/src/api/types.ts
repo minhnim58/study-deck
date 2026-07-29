@@ -9,7 +9,7 @@ export type AuthUser = {
 
 export type AuthResponse = {
   accessToken: string;
-  tokenType: 'Bearer';
+  tokenType: "Bearer";
   expiresInSeconds: number;
   user: AuthUser;
 };
@@ -25,7 +25,7 @@ export type RegisterRequest = {
   displayName: string;
 };
 
-export type Visibility = 'PRIVATE' | 'PUBLIC';
+export type Visibility = "PRIVATE" | "PUBLIC";
 
 export type UserGamification = {
   userId: number;
@@ -44,13 +44,13 @@ export type DailyMissionResponse = {
   target: number;
   progress: number;
   rewardPoints: number;
-  status: 'IN_PROGRESS' | 'COMPLETED' | 'CLAIMED';
+  status: "IN_PROGRESS" | "COMPLETED" | "CLAIMED";
   claimedAt: string | null;
 };
 
 export type DailyMissionStatusResponse = {
   missionKey: string;
-  status: 'IN_PROGRESS' | 'COMPLETED' | 'CLAIMED';
+  status: "IN_PROGRESS" | "COMPLETED" | "CLAIMED";
   progress: number;
   target: number;
   claimedAt: string | null;
@@ -80,6 +80,7 @@ export type DeckResponse = {
   visibility: Visibility;
   createdAt: string;
   updatedAt: string;
+  totalCards: number;
 };
 
 export type CreateDeckRequest = {
@@ -140,8 +141,8 @@ export type ViewerCardResponse = {
   position: number;
 };
 
-export type SrsRating = 'AGAIN' | 'HARD' | 'GOOD' | 'EASY';
-export type SrsCardState = 'NEW' | 'LEARNING' | 'REVIEW' | 'RELEARNING';
+export type SrsRating = "AGAIN" | "HARD" | "GOOD" | "EASY";
+export type SrsCardState = "NEW" | "LEARNING" | "REVIEW" | "RELEARNING";
 
 export type SrsDueCardResponse = {
   flashcardId: number;
@@ -182,8 +183,12 @@ export type SrsCardStateResponse = {
   lapses: number;
 };
 
-export type LearnPromptSide = 'TERM' | 'DEFINITION';
-export type LearnQuestionType = 'FLASHCARD' | 'MULTIPLE_CHOICE' | 'WRITTEN' | 'TRUE_FALSE';
+export type LearnPromptSide = "TERM" | "DEFINITION";
+export type LearnQuestionType =
+  | "FLASHCARD"
+  | "MULTIPLE_CHOICE"
+  | "WRITTEN"
+  | "TRUE_FALSE";
 
 export type CreateLearnSessionRequest = {
   lengthOfRounds: number;
@@ -197,7 +202,7 @@ export type CreateLearnSessionRequest = {
 
 export type LearnSessionResponse = {
   id: number;
-  status: 'ACTIVE' | 'COMPLETED';
+  status: "ACTIVE" | "COMPLETED";
   totalItems: number;
   correctCount: number;
   wrongCount: number;
@@ -211,6 +216,7 @@ export type LearnSessionItemResponse = {
   promptSide: LearnPromptSide;
   prompt: string;
   answer: string;
+  options: string[];
   attempts: number;
 };
 
@@ -231,7 +237,7 @@ export type CreatePracticeTestRequest = {
 
 export type PracticeTestResponse = {
   id: number;
-  status: 'ACTIVE' | 'SUBMITTED';
+  status: "ACTIVE" | "SUBMITTED";
   questionCount: number;
   answeredCount: number;
   scorePercent: number;
@@ -244,6 +250,7 @@ export type PracticeQuestionResponse = {
   questionType: LearnQuestionType;
   promptSide: LearnPromptSide;
   prompt: string;
+  options: string[];
   submittedAnswer: string | null;
   correct: boolean | null;
 };
@@ -260,7 +267,7 @@ export type CreateMatchingSessionRequest = {
 
 export type MatchingSessionResponse = {
   id: number;
-  status: 'ACTIVE' | 'COMPLETED';
+  status: "ACTIVE" | "COMPLETED";
   cardCount: number;
   matchedCount: number;
   durationMs: number;
@@ -284,7 +291,7 @@ export type CreateSortingSessionRequest = {
   shuffle: boolean;
 };
 
-export type SortingAnswer = 'KNOW' | 'DO_NOT_KNOW';
+export type SortingAnswer = "KNOW" | "DO_NOT_KNOW";
 
 export type SortingSessionItemResponse = {
   id: number;
@@ -300,7 +307,7 @@ export type SortingSessionItemResponse = {
 
 export type SortingSessionResponse = {
   id: number;
-  status: 'ACTIVE' | 'COMPLETED';
+  status: "ACTIVE" | "COMPLETED";
   knownCount: number;
   doNotKnowCount: number;
   items: SortingSessionItemResponse[];

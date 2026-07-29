@@ -59,12 +59,21 @@ public class PracticeTestQuestion {
     }
 
     public static PracticeTestQuestion create(
-        PracticeTest practiceTest,
-        Flashcard flashcard,
-        LearnQuestionType questionType,
-        PromptSide promptSide,
-        int position
-    ) {
+            PracticeTest practiceTest,
+            Flashcard flashcard,
+            LearnQuestionType questionType,
+            PromptSide promptSide,
+            int position) {
+        return create(practiceTest, flashcard, questionType, promptSide, position, null);
+    }
+
+    public static PracticeTestQuestion create(
+            PracticeTest practiceTest,
+            Flashcard flashcard,
+            LearnQuestionType questionType,
+            PromptSide promptSide,
+            int position,
+            String trueFalseWrongAnswer) {
         if (flashcard == null) {
             throw new IllegalArgumentException("Flashcard is required.");
         }
@@ -74,8 +83,22 @@ public class PracticeTestQuestion {
         question.flashcard = flashcard;
         question.questionType = questionType;
         question.promptSide = promptSide;
-        question.correctAnswer = correctAnswer(flashcard, questionType, promptSide);
         question.position = position;
+
+        if (questionType == LearnQuestionType.TRUE_FALSE) {
+            if (trueFalseWrongAnswer != null) {
+                // This is a FALSE question - shown definition is wrong
+                question.correctAnswer = "false";
+            } else {
+                // This is a TRUE question - shown definition is correct
+                question.correctAnswer = "true";
+            }
+        } else {
+            question.correctAnswer = promptSide == PromptSide.TERM
+                    ? flashcard.getDefinition()
+                    : flashcard.getTerm();
+        }
+
         return question;
     }
 
@@ -83,17 +106,6 @@ public class PracticeTestQuestion {
         this.submittedAnswer = submittedAnswer;
         this.correct = correct;
         this.answeredAt = Instant.now();
-    }
-
-    private static String correctAnswer(
-        Flashcard flashcard,
-        LearnQuestionType questionType,
-        PromptSide promptSide
-    ) {
-        if (questionType == LearnQuestionType.TRUE_FALSE) {
-            return "true";
-        }
-        return promptSide == PromptSide.TERM ? flashcard.getDefinition() : flashcard.getTerm();
     }
 
     public Long getId() {

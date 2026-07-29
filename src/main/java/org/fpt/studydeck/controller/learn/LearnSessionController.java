@@ -30,27 +30,27 @@ public class LearnSessionController {
     @PostMapping("/decks/{deckId}/learn-sessions")
     @ResponseStatus(HttpStatus.CREATED)
     public LearnSessionResponse createSession(
-        @PathVariable Long deckId,
+        @PathVariable("deckId") Long deckId,
         @Valid @RequestBody(required = false) CreateLearnSessionRequest request
     ) {
         return learnSessionService.createSession(deckId, request);
     }
 
     @GetMapping("/learn-sessions/{sessionId}")
-    public LearnSessionResponse getSession(@PathVariable Long sessionId) {
+    public LearnSessionResponse getSession(@PathVariable("sessionId") Long sessionId) {
         return learnSessionService.getSession(sessionId);
     }
 
     @PostMapping("/learn-sessions/{sessionId}/answers")
     public LearnSessionResponse answer(
-        @PathVariable Long sessionId,
+        @PathVariable("sessionId") Long sessionId,
         @Valid @RequestBody LearnAnswerRequest request
     ) {
         return learnSessionService.answer(sessionId, request);
     }
 
     @PostMapping("/learn-sessions/{sessionId}/complete")
-    public LearnSessionResponse complete(@PathVariable Long sessionId, Principal principal) {
+    public LearnSessionResponse complete(@PathVariable("sessionId") Long sessionId, Principal principal) {
         return learnSessionService.complete(sessionId, principal.getName());
     }
 }

@@ -30,7 +30,7 @@ public class FlashcardController {
     }
 
     @GetMapping("/decks/{deckId}/flashcards")
-    public List<FlashcardResponse> listDeckFlashcards(@PathVariable Long deckId) {
+    public List<FlashcardResponse> listDeckFlashcards(@PathVariable("deckId") Long deckId) {
         return flashcardService.listDeckFlashcards(deckId).stream()
             .map(FlashcardResponse::from)
             .toList();
@@ -39,7 +39,7 @@ public class FlashcardController {
     @PostMapping("/decks/{deckId}/flashcards")
     @ResponseStatus(HttpStatus.CREATED)
     public FlashcardResponse createFlashcard(
-        @PathVariable Long deckId,
+        @PathVariable("deckId") Long deckId,
         @Valid @RequestBody CreateFlashcardRequest request
     ) {
         return FlashcardResponse.from(flashcardService.createFlashcard(
@@ -53,7 +53,7 @@ public class FlashcardController {
 
     @PatchMapping("/flashcards/{flashcardId}")
     public FlashcardResponse updateFlashcard(
-        @PathVariable Long flashcardId,
+        @PathVariable("flashcardId") Long flashcardId,
         @Valid @RequestBody UpdateFlashcardRequest request
     ) {
         return FlashcardResponse.from(flashcardService.updateFlashcard(
@@ -67,13 +67,13 @@ public class FlashcardController {
 
     @DeleteMapping("/flashcards/{flashcardId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteFlashcard(@PathVariable Long flashcardId) {
+    public void deleteFlashcard(@PathVariable("flashcardId") Long flashcardId) {
         flashcardService.deleteFlashcard(flashcardId);
     }
 
     @PatchMapping("/flashcards/{flashcardId}/star")
     public FlashcardResponse setStarred(
-        @PathVariable Long flashcardId,
+        @PathVariable("flashcardId") Long flashcardId,
         @Valid @RequestBody StarFlashcardRequest request
     ) {
         return FlashcardResponse.from(flashcardService.setStarred(flashcardId, request.starred()));

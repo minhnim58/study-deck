@@ -2,6 +2,7 @@ package org.fpt.studydeck.domain.practice;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.fpt.studydeck.domain.deck.Deck;
@@ -59,12 +60,11 @@ public class PracticeTest {
     }
 
     public static PracticeTest create(
-        Deck deck,
-        String settingsJson,
-        List<Flashcard> flashcards,
-        List<LearnQuestionType> questionTypes,
-        List<PromptSide> promptSides
-    ) {
+            Deck deck,
+            String settingsJson,
+            List<Flashcard> flashcards,
+            List<LearnQuestionType> questionTypes,
+            List<PromptSide> promptSides) {
         if (deck == null) {
             throw new IllegalArgumentException("Deck is required.");
         }
@@ -78,26 +78,50 @@ public class PracticeTest {
         for (int position = 0; position < flashcards.size(); position++) {
             LearnQuestionType questionType = questionTypes.get(position % questionTypes.size());
             PromptSide promptSide = promptSides.get(position % promptSides.size());
-            practiceTest.addQuestion(flashcards.get(position), questionType, promptSide, position);
+            String trueFalseWrongAnswer = null;
+            if (questionType == LearnQuestionType.TRUE_FALSE && flashcards.size() > 1) {
+                // Randomly decide if this should be a FALSE question (~50% chance)
+                if (Math.random() < 0.5) {
+                    trueFalseWrongAnswer = pickRandomWrongAnswer(flashcards, position, promptSide);
+                }
+            }
+            practiceTest.addQuestion(flashcards.get(position), questionType, promptSide, position,
+                    trueFalseWrongAnswer);
         }
         return practiceTest;
     }
 
+    private static String pickRandomWrongAnswer(List<Flashcard> flashcards, int currentIndex, PromptSide promptSide) {
+        List<Integer> candidates = new ArrayList<>();
+        for (int i = 0; i < flashcards.size(); i++) {
+            if (i != currentIndex) {
+                candidates.add(i);
+            }
+        }
+        if (candidates.isEmpty()) {
+            return null;
+        }
+        Collections.shuffle(candidates);
+        Flashcard wrongCard = flashcards.get(candidates.get(0));
+        return promptSide == PromptSide.TERM ? wrongCard.getDefinition() : wrongCard.getTerm();
+    }
+
     private void addQuestion(
-        Flashcard flashcard,
-        LearnQuestionType questionType,
-        PromptSide promptSide,
-        int position
-    ) {
-        questions.add(PracticeTestQuestion.create(this, flashcard, questionType, promptSide, position));
+            Flashcard flashcard,
+            LearnQuestionType questionType,
+            PromptSide promptSide,
+            int position,
+            String trueFalseWrongAnswer) {
+        questions.add(
+                PracticeTestQuestion.create(this, flashcard, questionType, promptSide, position, trueFalseWrongAnswer));
     }
 
     public void submit() {
         this.status = PracticeTestStatus.SUBMITTED;
         this.submittedAt = Instant.now();
         long correctAnswered = questions.stream()
-            .filter(question -> Boolean.TRUE.equals(question.getCorrect()))
-            .count();
+                .filter(question -> Boolean.TRUE.equals(question.getCorrect()))
+                .count();
         this.scorePercent = questions.isEmpty() ? 0.0 : (correctAnswered * 100.0) / questions.size();
     }
 

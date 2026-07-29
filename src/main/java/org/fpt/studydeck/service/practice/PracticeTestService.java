@@ -1,6 +1,7 @@
 package org.fpt.studydeck.service.practice;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -46,12 +47,11 @@ public class PracticeTestService {
     private final DailyMissionService dailyMissionService;
 
     public PracticeTestService(
-        DeckRepository deckRepository,
-        FlashcardRepository flashcardRepository,
-        PracticeTestRepository practiceTestRepository,
-        GamificationService gamificationService,
-        DailyMissionService dailyMissionService
-    ) {
+            DeckRepository deckRepository,
+            FlashcardRepository flashcardRepository,
+            PracticeTestRepository practiceTestRepository,
+            GamificationService gamificationService,
+            DailyMissionService dailyMissionService) {
         this.deckRepository = deckRepository;
         this.flashcardRepository = flashcardRepository;
         this.practiceTestRepository = practiceTestRepository;
@@ -61,7 +61,7 @@ public class PracticeTestService {
 
     public PracticeTestResponse createPracticeTest(Long deckId, CreatePracticeTestRequest request) {
         Deck deck = deckRepository.findById(deckId)
-            .orElseThrow(() -> new ResourceNotFoundException(DECK_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(DECK_NOT_FOUND));
         if (request == null || request.questionCount() <= 0) {
             throw new InvalidRequestException(NON_POSITIVE_QUESTION_COUNT);
         }
@@ -75,22 +75,24 @@ public class PracticeTestService {
         }
 
         List<Flashcard> availableCards = request.starredOnly()
-            ? flashcardRepository.findByDeckIdAndStarredTrueOrderByPositionAscIdAsc(deckId)
-            : flashcardRepository.findByDeckIdOrderByPositionAscIdAsc(deckId);
+                ? flashcardRepository.findByDeckIdAndStarredTrueOrderByPositionAscIdAsc(deckId)
+                : flashcardRepository.findByDeckIdOrderByPositionAscIdAsc(deckId);
         if (availableCards.size() < request.questionCount()) {
             throw new InvalidRequestException(NOT_ENOUGH_CARDS);
         }
 
         List<Flashcard> selectedCards = new ArrayList<>(availableCards.subList(0, request.questionCount()));
         PracticeTest practiceTest = practiceTestRepository.save(
-            PracticeTest.create(deck, settingsJson(request), selectedCards, questionTypes, promptSides(request))
-        );
-        return toResponse(practiceTest);
+                PracticeTest.create(deck, settingsJson(request), selectedCards, questionTypes, promptSides(request)));
+        return toResponse(practiceTest, availableCards);
     }
 
     @Transactional(readOnly = true)
     public PracticeTestResponse getPracticeTest(Long testId) {
-        return toResponse(findPracticeTest(testId));
+        PracticeTest practiceTest = findPracticeTest(testId);
+        List<Flashcard> allCards = flashcardRepository.findByDeckIdOrderByPositionAscIdAsc(
+                practiceTest.getDeck().getId());
+        return toResponse(practiceTest, allCards);
     }
 
     public PracticeTestResponse answer(Long testId, PracticeAnswerRequest request) {
@@ -100,54 +102,88 @@ public class PracticeTestService {
         }
 
         PracticeTestQuestion question = practiceTest.getQuestions().stream()
-            .filter(candidate -> candidate.getId().equals(request.questionId()))
-            .findFirst()
-            .orElseThrow(() -> new ResourceNotFoundException(QUESTION_NOT_FOUND));
+                .filter(candidate -> candidate.getId().equals(request.questionId()))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException(QUESTION_NOT_FOUND));
         question.answer(request.answer(), matchesExpectedAnswer(question, request.answer()));
-        return toResponse(practiceTest);
+        List<Flashcard> allCards = flashcardRepository.findByDeckIdOrderByPositionAscIdAsc(
+                practiceTest.getDeck().getId());
+        return toResponse(practiceTest, allCards);
+    }
+
+    public PracticeTestResponse submit(Long testId) {
+        return submit(testId, null);
     }
 
     public PracticeTestResponse submit(Long testId, String userEmail) {
         PracticeTest practiceTest = findPracticeTest(testId);
         practiceTest.submit();
-        gamificationService.recordActivity(userEmail);
-        dailyMissionService.updateMissionProgress(userEmail, "practice_test_completed", 1, 1);
-        gamificationService.awardPoints(userEmail, 20);
-        return toResponse(practiceTest);
+        if (userEmail != null && !userEmail.isBlank()) {
+            gamificationService.recordActivity(userEmail);
+            dailyMissionService.updateMissionProgress(userEmail, "practice_test_completed", 1, 1);
+            gamificationService.awardPoints(userEmail, 20);
+        }
+        List<Flashcard> allCards = flashcardRepository.findByDeckIdOrderByPositionAscIdAsc(
+                practiceTest.getDeck().getId());
+        return toResponse(practiceTest, allCards);
     }
 
     private PracticeTest findPracticeTest(Long testId) {
         return practiceTestRepository.findById(testId)
-            .orElseThrow(() -> new ResourceNotFoundException(TEST_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(TEST_NOT_FOUND));
     }
 
-    private PracticeTestResponse toResponse(PracticeTest practiceTest) {
+    private PracticeTestResponse toResponse(PracticeTest practiceTest, List<Flashcard> allCards) {
         List<PracticeTestQuestion> orderedQuestions = orderedQuestions(practiceTest);
         return new PracticeTestResponse(
-            practiceTest.getId(),
-            practiceTest.getStatus().name(),
-            orderedQuestions.size(),
-            answeredCount(practiceTest),
-            practiceTest.getScorePercent(),
-            orderedQuestions.stream().map(PracticeQuestionResponse::from).toList()
-        );
+                practiceTest.getId(),
+                practiceTest.getStatus().name(),
+                orderedQuestions.size(),
+                answeredCount(practiceTest),
+                practiceTest.getScorePercent(),
+                orderedQuestions.stream()
+                        .map(question -> PracticeQuestionResponse.from(question, generateOptions(question, allCards)))
+                        .toList());
+    }
+
+    private List<String> generateOptions(PracticeTestQuestion question, List<Flashcard> allCards) {
+        if (question.getQuestionType() != LearnQuestionType.MULTIPLE_CHOICE) {
+            return List.of();
+        }
+
+        String correctAnswer = question.getCorrectAnswer();
+        boolean useDefinitions = question.getPromptSide() == PromptSide.TERM;
+
+        List<String> distractors = new ArrayList<>();
+        for (Flashcard card : allCards) {
+            String candidateAnswer = useDefinitions ? card.getDefinition() : card.getTerm();
+            if (!candidateAnswer.equalsIgnoreCase(correctAnswer) && !distractors.contains(candidateAnswer)) {
+                distractors.add(candidateAnswer);
+            }
+        }
+        Collections.shuffle(distractors);
+        int distractorCount = Math.min(3, distractors.size());
+        List<String> options = new ArrayList<>(distractors.subList(0, distractorCount));
+        options.add(correctAnswer);
+        Collections.shuffle(options);
+        return options;
     }
 
     private List<PracticeTestQuestion> orderedQuestions(PracticeTest practiceTest) {
         return practiceTest.getQuestions().stream()
-            .sorted(Comparator.comparingInt(PracticeTestQuestion::getPosition))
-            .toList();
+                .sorted(Comparator.comparingInt(PracticeTestQuestion::getPosition))
+                .toList();
     }
 
     private int answeredCount(PracticeTest practiceTest) {
         return (int) practiceTest.getQuestions().stream()
-            .filter(question -> question.getSubmittedAnswer() != null)
-            .count();
+                .filter(question -> question.getSubmittedAnswer() != null)
+                .count();
     }
 
     private boolean matchesExpectedAnswer(PracticeTestQuestion question, String submittedAnswer) {
         return submittedAnswer != null
-            && submittedAnswer.trim().equalsIgnoreCase(question.getCorrectAnswer().trim());
+                && submittedAnswer.trim().equalsIgnoreCase(question.getCorrectAnswer().trim());
     }
 
     private List<LearnQuestionType> questionTypes(CreatePracticeTestRequest request) {
@@ -177,15 +213,14 @@ public class PracticeTestService {
 
     private String settingsJson(CreatePracticeTestRequest request) {
         return """
-            {"questionCount":%d,"multipleChoice":%s,"written":%s,"trueFalse":%s,"starredOnly":%s,"answerWithTerm":%s,"answerWithDefinition":%s}"""
-            .formatted(
-                request.questionCount(),
-                request.multipleChoice(),
-                request.written(),
-                request.trueFalse(),
-                request.starredOnly(),
-                request.answerWithTerm(),
-                request.answerWithDefinition()
-            );
+                {"questionCount":%d,"multipleChoice":%s,"written":%s,"trueFalse":%s,"starredOnly":%s,"answerWithTerm":%s,"answerWithDefinition":%s}"""
+                .formatted(
+                        request.questionCount(),
+                        request.multipleChoice(),
+                        request.written(),
+                        request.trueFalse(),
+                        request.starredOnly(),
+                        request.answerWithTerm(),
+                        request.answerWithDefinition());
     }
 }

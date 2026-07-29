@@ -1,13 +1,15 @@
 package org.fpt.studydeck.dto.gamification;
 
+import java.time.Instant;
+
 public record DailyMissionResponse(
-    String missionKey,
+    String key,
     String title,
     String description,
-    int progress,
     int target,
-    boolean completed,
-    boolean claimed,
-    long rewardPoints
+    int progress,
+    long rewardPoints,
+    String status,
+    Instant claimedAt
 ) {
 }

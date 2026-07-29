@@ -27,20 +27,20 @@ public class SortingSessionController {
     @PostMapping("/decks/{deckId}/sorting-sessions")
     @ResponseStatus(HttpStatus.CREATED)
     public SortingSessionResponse createSession(
-        @PathVariable Long deckId,
+        @PathVariable("deckId") Long deckId,
         @RequestBody(required = false) CreateSortingSessionRequest request
     ) {
         return sortingSessionService.createSession(deckId, request);
     }
 
     @GetMapping("/sorting-sessions/{sessionId}")
-    public SortingSessionResponse getSession(@PathVariable Long sessionId) {
+    public SortingSessionResponse getSession(@PathVariable("sessionId") Long sessionId) {
         return sortingSessionService.getSession(sessionId);
     }
 
     @PostMapping("/sorting-sessions/{sessionId}/answers")
     public SortingSessionResponse answer(
-        @PathVariable Long sessionId,
+        @PathVariable("sessionId") Long sessionId,
         @Valid @RequestBody SortingAnswerRequest request
     ) {
         return sortingSessionService.answer(sessionId, request);
