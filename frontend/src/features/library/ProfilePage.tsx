@@ -29,16 +29,19 @@ export function ProfilePage() {
           label="Points"
           value={isLoading ? <Loader aria-label="Loading profile stats" size="sm" /> : (gamification.data?.points ?? 0)}
           icon={<IconStar size={20} />}
+          color="yellow"
         />
         <StatCard
           label="Level"
           value={isLoading ? <Loader aria-label="Loading profile stats" size="sm" /> : (gamification.data?.level ?? 1)}
           icon={<IconTargetArrow size={20} />}
+          color="green"
         />
         <StatCard
           label="Streak"
           value={isLoading ? <Loader aria-label="Loading profile stats" size="sm" /> : `${gamification.data?.streakCount ?? 0} days`}
           icon={<IconFlame size={20} />}
+          color="orange"
         />
       </SimpleGrid>
 

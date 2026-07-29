@@ -1,5 +1,5 @@
 import { Alert, Badge, Button, Card, Group, Loader, Stack, Text, Title } from '@mantine/core';
-import { IconAlertCircle, IconEye } from '@tabler/icons-react';
+import { IconAlertCircle, IconEye, IconStar } from '@tabler/icons-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -82,7 +82,21 @@ export function SrsReviewPage() {
       ) : null}
 
       {reviewComplete ? (
-        <EmptyState title="Review complete" description={`Reviewed ${reviewedCount} cards.`} />
+        <Stack gap="md">
+          <EmptyState title="Review complete" description={`Reviewed ${reviewedCount} cards.`} />
+          {reviewedCount > 0 ? (
+            <Card withBorder radius="sm" p="md" style={{ background: 'var(--mantine-color-green-light)' }}>
+              <Stack gap={4}>
+                <Text fw={700}>Reward unlocked</Text>
+                <Group gap="sm">
+                  <Badge color="green" leftSection={<IconStar size={14} />}>
+                    {reviewedCount * 2} points
+                  </Badge>
+                </Group>
+              </Stack>
+            </Card>
+          ) : null}
+        </Stack>
       ) : null}
 
       {currentCard && currentIndex < cards.length ? (

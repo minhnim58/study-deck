@@ -162,6 +162,11 @@ export function PracticeSessionPage() {
                 <Text c="dimmed" size="sm">
                   Your answer: {question.submittedAnswer || 'No answer'}
                 </Text>
+                {!question.correct ? (
+                  <Text c="green" size="sm">
+                    Correct answer: {question.correctAnswer}
+                  </Text>
+                ) : null}
               </Stack>
             </Card>
           ))}

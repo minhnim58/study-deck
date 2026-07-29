@@ -18,6 +18,8 @@ import org.fpt.studydeck.exception.ResourceNotFoundException;
 import org.fpt.studydeck.repository.deck.DeckRepository;
 import org.fpt.studydeck.repository.deck.FlashcardRepository;
 import org.fpt.studydeck.repository.matching.MatchingSessionRepository;
+import org.fpt.studydeck.service.gamification.DailyMissionService;
+import org.fpt.studydeck.service.gamification.GamificationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,20 +36,25 @@ public class MatchingSessionService {
     private final DeckRepository deckRepository;
     private final FlashcardRepository flashcardRepository;
     private final MatchingSessionRepository matchingSessionRepository;
+    private final GamificationService gamificationService;
+    private final DailyMissionService dailyMissionService;
 
     public MatchingSessionService(
-        DeckRepository deckRepository,
-        FlashcardRepository flashcardRepository,
-        MatchingSessionRepository matchingSessionRepository
-    ) {
+            DeckRepository deckRepository,
+            FlashcardRepository flashcardRepository,
+            MatchingSessionRepository matchingSessionRepository,
+            GamificationService gamificationService,
+            DailyMissionService dailyMissionService) {
         this.deckRepository = deckRepository;
         this.flashcardRepository = flashcardRepository;
         this.matchingSessionRepository = matchingSessionRepository;
+        this.gamificationService = gamificationService;
+        this.dailyMissionService = dailyMissionService;
     }
 
     public MatchingSessionResponse createSession(Long deckId, CreateMatchingSessionRequest request) {
         Deck deck = deckRepository.findById(deckId)
-            .orElseThrow(() -> new ResourceNotFoundException(DECK_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(DECK_NOT_FOUND));
         int cardCount = request == null ? 0 : request.cardCount();
         if (cardCount < 1) {
             throw new InvalidRequestException(NOT_ENOUGH_CARDS);
@@ -55,15 +62,14 @@ public class MatchingSessionService {
 
         boolean starredOnly = request.starredOnly();
         List<Flashcard> flashcards = starredOnly
-            ? flashcardRepository.findByDeckIdAndStarredTrueOrderByPositionAscIdAsc(deckId)
-            : flashcardRepository.findByDeckIdOrderByPositionAscIdAsc(deckId);
+                ? flashcardRepository.findByDeckIdAndStarredTrueOrderByPositionAscIdAsc(deckId)
+                : flashcardRepository.findByDeckIdOrderByPositionAscIdAsc(deckId);
         if (flashcards.size() < cardCount) {
             throw new InvalidRequestException(NOT_ENOUGH_CARDS);
         }
 
         MatchingSession session = matchingSessionRepository.save(
-            MatchingSession.create(deck, cardCount, starredOnly, flashcards.stream().limit(cardCount).toList())
-        );
+                MatchingSession.create(deck, cardCount, starredOnly, flashcards.stream().limit(cardCount).toList()));
         return toResponse(session);
     }
 
@@ -73,65 +79,90 @@ public class MatchingSessionService {
     }
 
     public MatchingSessionResponse match(Long sessionId, MatchingAnswerRequest request) {
+        return match(sessionId, request, null);
+    }
+
+    public MatchingSessionResponse match(Long sessionId, MatchingAnswerRequest request, String userEmail) {
         MatchingSession session = findSessionForUpdate(sessionId);
         if (session.getStatus() == MatchingSessionStatus.COMPLETED) {
             throw new ResourceConflictException(SESSION_COMPLETED);
         }
 
         MatchingSessionItem item = session.getItems().stream()
-            .filter(candidate -> candidate.getId().equals(request.itemId()))
-            .findFirst()
-            .orElseThrow(() -> new ResourceNotFoundException(ITEM_NOT_FOUND));
+                .filter(candidate -> candidate.getId().equals(request.itemId()))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException(ITEM_NOT_FOUND));
 
         item.match();
+
+        if (userEmail != null && !userEmail.isBlank()) {
+            gamificationService.recordActivity(userEmail);
+            dailyMissionService.updateMissionProgress(userEmail, "matching_session_matches", 1, 10);
+            gamificationService.awardPoints(userEmail, 2);
+        }
+
         matchingSessionRepository.flush();
         if (matchingSessionRepository.countUnmatchedItemsBySessionId(sessionId) == 0) {
             session.complete();
+            if (userEmail != null && !userEmail.isBlank()) {
+                dailyMissionService.updateMissionProgress(userEmail, "matching_session_completed", 1, 1);
+                gamificationService.awardPoints(userEmail, 10);
+            }
         }
 
         return toResponse(session);
     }
 
     public MatchingSessionResponse complete(Long sessionId) {
+        return complete(sessionId, null);
+    }
+
+    public MatchingSessionResponse complete(Long sessionId, String userEmail) {
         MatchingSession session = findSessionForUpdate(sessionId);
-        session.complete();
+        if (session.getStatus() != MatchingSessionStatus.COMPLETED) {
+            session.complete();
+            if (userEmail != null && !userEmail.isBlank()) {
+                gamificationService.recordActivity(userEmail);
+                dailyMissionService.updateMissionProgress(userEmail, "matching_session_completed", 1, 1);
+                gamificationService.awardPoints(userEmail, 10);
+            }
+        }
         return toResponse(session);
     }
 
     private MatchingSession findSession(Long sessionId) {
         return matchingSessionRepository.findById(sessionId)
-            .orElseThrow(() -> new ResourceNotFoundException(SESSION_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(SESSION_NOT_FOUND));
     }
 
     private MatchingSession findSessionForUpdate(Long sessionId) {
         return matchingSessionRepository.findByIdForUpdate(sessionId)
-            .orElseThrow(() -> new ResourceNotFoundException(SESSION_NOT_FOUND));
+                .orElseThrow(() -> new ResourceNotFoundException(SESSION_NOT_FOUND));
     }
 
     private MatchingSessionResponse toResponse(MatchingSession session) {
         List<MatchingSessionItemResponse> items = orderedItems(session).stream()
-            .map(MatchingSessionItemResponse::from)
-            .toList();
+                .map(MatchingSessionItemResponse::from)
+                .toList();
 
         return new MatchingSessionResponse(
-            session.getId(),
-            session.getStatus().name(),
-            session.getCardCount(),
-            matchedCount(session),
-            session.getDurationMs(),
-            items
-        );
+                session.getId(),
+                session.getStatus().name(),
+                session.getCardCount(),
+                matchedCount(session),
+                session.getDurationMs(),
+                items);
     }
 
     private int matchedCount(MatchingSession session) {
         return Math.toIntExact(session.getItems().stream()
-            .filter(MatchingSessionItem::isMatched)
-            .count());
+                .filter(MatchingSessionItem::isMatched)
+                .count());
     }
 
     private List<MatchingSessionItem> orderedItems(MatchingSession session) {
         return session.getItems().stream()
-            .sorted(Comparator.comparingInt(MatchingSessionItem::getPosition))
-            .toList();
+                .sorted(Comparator.comparingInt(MatchingSessionItem::getPosition))
+                .toList();
     }
 }

@@ -1,5 +1,5 @@
 import { Alert, Badge, Button, Card, Group, Loader, SimpleGrid, Stack, Text, Title } from '@mantine/core';
-import { IconAlertCircle, IconFlag } from '@tabler/icons-react';
+import { IconAlertCircle, IconFlag, IconFlame, IconStar } from '@tabler/icons-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -20,6 +20,7 @@ export function MatchingSessionPage() {
   const [session, setSession] = useState<MatchingSessionResponse | null>(null);
   const [selection, setSelection] = useState<Selection | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [rewardSummary, setRewardSummary] = useState<{ points: number; streak: number } | null>(null);
 
   const sessionQuery = useQuery({
     queryKey: ['matching-session', parsedSessionId],
@@ -44,12 +45,18 @@ export function MatchingSessionPage() {
       setSession(response);
       setSelection(null);
       setMessage('Matched');
+      if (response.status === 'COMPLETED') {
+        setRewardSummary({ points: 10 + response.matchedCount * 2, streak: 1 });
+      }
     },
   });
 
   const completeMutation = useMutation({
     mutationFn: () => completeMatchingSession(parsedSessionId),
-    onSuccess: (response) => setSession(response),
+    onSuccess: (response) => {
+      setSession(response);
+      setRewardSummary({ points: 10 + response.matchedCount * 2, streak: 1 });
+    },
   });
 
   function selectTile(nextSelection: Selection) {
@@ -111,7 +118,24 @@ export function MatchingSessionPage() {
       ) : null}
 
       {completed ? (
-        <EmptyState title="Matching complete" description={`Matched ${session?.matchedCount ?? 0} cards.`} />
+        <Stack gap="md">
+          <EmptyState title="Matching complete" description={`Matched ${session?.matchedCount ?? 0} cards.`} />
+          {rewardSummary ? (
+            <Card withBorder radius="sm" p="md" style={{ background: 'var(--mantine-color-green-light)' }}>
+              <Stack gap={4}>
+                <Text fw={700}>Reward unlocked</Text>
+                <Group gap="sm">
+                  <Badge color="green" leftSection={<IconStar size={14} />}>
+                    {rewardSummary.points} points
+                  </Badge>
+                  <Badge color="yellow" leftSection={<IconFlame size={14} />}>
+                    {rewardSummary.streak} day streak
+                  </Badge>
+                </Group>
+              </Stack>
+            </Card>
+          ) : null}
+        </Stack>
       ) : null}
 
       {!sessionQuery.isLoading && !completed && items.length === 0 ? (

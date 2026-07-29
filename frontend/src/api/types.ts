@@ -253,6 +253,7 @@ export type PracticeQuestionResponse = {
   options: string[];
   submittedAnswer: string | null;
   correct: boolean | null;
+  correctAnswer: string;
 };
 
 export type PracticeAnswerRequest = {

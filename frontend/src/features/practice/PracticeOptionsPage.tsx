@@ -17,7 +17,7 @@ export function PracticeOptionsPage() {
     initialValues: {
       questionCount: 10,
       multipleChoice: true,
-      written: true,
+      written: false,
       trueFalse: false,
       starredOnly: false,
       answerWithTerm: true,

@@ -39,9 +39,14 @@ export function DailyMissionList({ missions, onClaim }: DailyMissionListProps) {
                   {mission.progress}/{mission.target} · Reward: {mission.rewardPoints} pts
                 </Text>
               </Stack>
-              {canClaim ? (
-                <Button size="compact-sm" variant="light" onClick={() => onClaim?.(mission.key)}>
-                  Claim
+              {canClaim || mission.status === 'CLAIMED' ? (
+                <Button 
+                  size="compact-sm" 
+                  variant={mission.status === 'CLAIMED' ? 'default' : 'light'} 
+                  disabled={mission.status === 'CLAIMED'}
+                  onClick={() => onClaim?.(mission.key)}
+                >
+                  {mission.status === 'CLAIMED' ? 'Claimed' : 'Claim'}
                 </Button>
               ) : null}
             </Group>

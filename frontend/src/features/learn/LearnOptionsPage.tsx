@@ -16,9 +16,9 @@ export function LearnOptionsPage() {
   const form = useForm<CreateLearnSessionRequest>({
     initialValues: {
       lengthOfRounds: 10,
-      flashcards: true,
+      flashcards: false,
       multipleChoice: true,
-      written: true,
+      written: false,
       trueFalse: false,
       starredOnly: false,
       shuffleTerms: true,
@@ -71,7 +71,6 @@ export function LearnOptionsPage() {
 
             <Stack gap="xs">
               <Title order={3}>Question types</Title>
-              <Checkbox label="Flashcards" {...form.getInputProps('flashcards', { type: 'checkbox' })} />
               <Checkbox label="Multiple choice" {...form.getInputProps('multipleChoice', { type: 'checkbox' })} />
               <Checkbox label="Written" {...form.getInputProps('written', { type: 'checkbox' })} />
               <Checkbox label="True/false" {...form.getInputProps('trueFalse', { type: 'checkbox' })} />

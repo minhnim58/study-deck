@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.security.Principal;
+
 import jakarta.validation.Valid;
 
 @RestController
@@ -28,9 +30,8 @@ public class MatchingSessionController {
     @PostMapping("/decks/{deckId}/matching-sessions")
     @ResponseStatus(HttpStatus.CREATED)
     public MatchingSessionResponse createSession(
-        @PathVariable("deckId") Long deckId,
-        @Valid @RequestBody CreateMatchingSessionRequest request
-    ) {
+            @PathVariable("deckId") Long deckId,
+            @Valid @RequestBody CreateMatchingSessionRequest request) {
         return matchingSessionService.createSession(deckId, request);
     }
 
@@ -41,14 +42,16 @@ public class MatchingSessionController {
 
     @PostMapping("/matching-sessions/{sessionId}/matches")
     public MatchingSessionResponse match(
-        @PathVariable("sessionId") Long sessionId,
-        @Valid @RequestBody MatchingAnswerRequest request
-    ) {
-        return matchingSessionService.match(sessionId, request);
+            @PathVariable("sessionId") Long sessionId,
+            @Valid @RequestBody MatchingAnswerRequest request,
+            Principal principal) {
+        String email = principal != null ? principal.getName() : null;
+        return matchingSessionService.match(sessionId, request, email);
     }
 
     @PostMapping("/matching-sessions/{sessionId}/complete")
-    public MatchingSessionResponse complete(@PathVariable("sessionId") Long sessionId) {
-        return matchingSessionService.complete(sessionId);
+    public MatchingSessionResponse complete(@PathVariable("sessionId") Long sessionId, Principal principal) {
+        String email = principal != null ? principal.getName() : null;
+        return matchingSessionService.complete(sessionId, email);
     }
 }

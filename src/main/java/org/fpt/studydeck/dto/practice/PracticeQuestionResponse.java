@@ -14,7 +14,8 @@ public record PracticeQuestionResponse(
         String prompt,
         List<String> options,
         String submittedAnswer,
-        Boolean correct) {
+        Boolean correct,
+        String correctAnswer) {
 
     public static PracticeQuestionResponse from(PracticeTestQuestion question) {
         return from(question, List.of());
@@ -53,7 +54,8 @@ public record PracticeQuestionResponse(
                 prompt,
                 effectiveOptions,
                 question.getSubmittedAnswer(),
-                question.getCorrect());
+                question.getCorrect(),
+                question.getCorrectAnswer());
     }
 
     private static String prompt(PracticeTestQuestion question) {

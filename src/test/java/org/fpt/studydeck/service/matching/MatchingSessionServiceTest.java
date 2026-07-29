@@ -22,8 +22,12 @@ import org.springframework.context.annotation.Import;
 
 import jakarta.persistence.EntityManager;
 
+import org.fpt.studydeck.service.gamification.DailyMissionService;
+import org.fpt.studydeck.service.gamification.GamificationService;
+
 @DataJpaTest
-@Import({DeckService.class, FlashcardService.class, ViewerCardService.class, MatchingSessionService.class})
+@Import({ DeckService.class, FlashcardService.class, ViewerCardService.class, GamificationService.class,
+        DailyMissionService.class, MatchingSessionService.class })
 class MatchingSessionServiceTest {
 
     @Autowired
@@ -47,9 +51,8 @@ class MatchingSessionServiceTest {
         createCards(deck.getId(), 10);
 
         var session = matchingSessionService.createSession(
-            deck.getId(),
-            new CreateMatchingSessionRequest(10, false)
-        );
+                deck.getId(),
+                new CreateMatchingSessionRequest(10, false));
 
         assertThat(session.status()).isEqualTo(MatchingSessionStatus.ACTIVE.name());
         assertThat(session.cardCount()).isEqualTo(10);
@@ -64,9 +67,8 @@ class MatchingSessionServiceTest {
         var session = matchingSessionService.createSession(deck.getId(), new CreateMatchingSessionRequest(2, false));
 
         var matched = matchingSessionService.match(
-            session.id(),
-            new MatchingAnswerRequest(session.items().get(0).id())
-        );
+                session.id(),
+                new MatchingAnswerRequest(session.items().get(0).id()));
 
         assertThat(matched.matchedCount()).isEqualTo(1);
         assertThat(matched.status()).isEqualTo(MatchingSessionStatus.ACTIVE.name());
@@ -79,16 +81,17 @@ class MatchingSessionServiceTest {
         var session = matchingSessionService.createSession(deck.getId(), new CreateMatchingSessionRequest(2, false));
 
         var first = matchingSessionService.match(session.id(), new MatchingAnswerRequest(session.items().get(0).id()));
-        var completed = matchingSessionService.match(session.id(), new MatchingAnswerRequest(first.items().get(1).id()));
+        var completed = matchingSessionService.match(session.id(),
+                new MatchingAnswerRequest(first.items().get(1).id()));
 
         assertThat(completed.status()).isEqualTo(MatchingSessionStatus.COMPLETED.name());
         assertThat(completed.durationMs()).isGreaterThanOrEqualTo(0);
         assertThat(matchingSessionRepository.findById(session.id()))
-            .get()
-            .satisfies(stored -> {
-                assertThat(stored.getCompletedAt()).isNotNull();
-                assertThat(stored.getDurationMs()).isGreaterThanOrEqualTo(0);
-            });
+                .get()
+                .satisfies(stored -> {
+                    assertThat(stored.getCompletedAt()).isNotNull();
+                    assertThat(stored.getDurationMs()).isGreaterThanOrEqualTo(0);
+                });
     }
 
     @Test
@@ -100,10 +103,9 @@ class MatchingSessionServiceTest {
 
         assertThatThrownBy(() -> matchingSessionService.createSession(
                 deck.getId(),
-                new CreateMatchingSessionRequest(2, true)
-            ))
-            .isInstanceOf(InvalidRequestException.class)
-            .hasMessage("Not enough cards are available for matching.");
+                new CreateMatchingSessionRequest(2, true)))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("Not enough cards are available for matching.");
     }
 
     @Test
@@ -112,23 +114,21 @@ class MatchingSessionServiceTest {
         createCards(deck.getId(), 1);
         var session = matchingSessionService.createSession(deck.getId(), new CreateMatchingSessionRequest(1, false));
         var completed = matchingSessionService.match(
-            session.id(),
-            new MatchingAnswerRequest(session.items().get(0).id())
-        );
+                session.id(),
+                new MatchingAnswerRequest(session.items().get(0).id()));
 
         assertThatThrownBy(() -> matchingSessionService.match(
                 session.id(),
-                new MatchingAnswerRequest(completed.items().get(0).id())
-            ))
-            .isInstanceOf(ResourceConflictException.class)
-            .hasMessage("Matching session is already completed.");
+                new MatchingAnswerRequest(completed.items().get(0).id())))
+                .isInstanceOf(ResourceConflictException.class)
+                .hasMessage("Matching session is already completed.");
     }
 
     @Test
     void getSessionMissingThrowsResourceNotFoundException() {
         assertThatThrownBy(() -> matchingSessionService.getSession(999L))
-            .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Matching session was not found.");
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Matching session was not found.");
     }
 
     @Test
@@ -138,23 +138,24 @@ class MatchingSessionServiceTest {
         var session = matchingSessionService.createSession(deck.getId(), new CreateMatchingSessionRequest(1, false));
 
         assertThatThrownBy(() -> matchingSessionService.match(session.id(), new MatchingAnswerRequest(999L)))
-            .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Matching session item was not found.");
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Matching session item was not found.");
     }
 
     @Test
     void matchItemFromAnotherSessionThrowsResourceNotFoundException() {
         var deck = deckService.createDeck(null, "Korean Basics", null);
         createCards(deck.getId(), 2);
-        var firstSession = matchingSessionService.createSession(deck.getId(), new CreateMatchingSessionRequest(1, false));
-        var secondSession = matchingSessionService.createSession(deck.getId(), new CreateMatchingSessionRequest(1, false));
+        var firstSession = matchingSessionService.createSession(deck.getId(),
+                new CreateMatchingSessionRequest(1, false));
+        var secondSession = matchingSessionService.createSession(deck.getId(),
+                new CreateMatchingSessionRequest(1, false));
 
         assertThatThrownBy(() -> matchingSessionService.match(
                 firstSession.id(),
-                new MatchingAnswerRequest(secondSession.items().get(0).id())
-            ))
-            .isInstanceOf(ResourceNotFoundException.class)
-            .hasMessage("Matching session item was not found.");
+                new MatchingAnswerRequest(secondSession.items().get(0).id())))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Matching session item was not found.");
     }
 
     @Test
@@ -174,9 +175,9 @@ class MatchingSessionServiceTest {
                 set item.matched = true, item.matchedAt = :matchedAt
                 where item.id = :itemId
                 """)
-            .setParameter("matchedAt", Instant.now())
-            .setParameter("itemId", secondItemId)
-            .executeUpdate();
+                .setParameter("matchedAt", Instant.now())
+                .setParameter("itemId", secondItemId)
+                .executeUpdate();
 
         var completed = matchingSessionService.match(session.id(), new MatchingAnswerRequest(firstItemId));
 
