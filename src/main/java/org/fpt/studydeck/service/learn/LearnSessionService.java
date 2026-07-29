@@ -164,36 +164,30 @@ public class LearnSessionService {
         String correctAnswer;
         if (item.isTrueFalseCorrectValue()) {
             // TRUE question: show the correct definition
-            shownDefinition = flashcard.getDefinition();
+            shownDefinition = item.getPromptSide() == PromptSide.TERM ? flashcard.getDefinition() : flashcard.getTerm();
             correctAnswer = "true";
         } else {
-            // FALSE question: show a wrong definition from another card
-            shownDefinition = pickRandomWrongAnswer(allCards, flashcard);
+            // FALSE question: show the persisted wrong definition
+            shownDefinition = item.getTrueFalseWrongAnswer();
+            if (shownDefinition == null) {
+                // fallback
+                shownDefinition = item.getPromptSide() == PromptSide.TERM ? flashcard.getDefinition()
+                        : flashcard.getTerm();
+            }
             correctAnswer = "false";
         }
+
+        String promptBase = item.getPromptSide() == PromptSide.TERM ? flashcard.getTerm() : flashcard.getDefinition();
+
         return new LearnSessionItemResponse(
                 item.getId(),
                 flashcard.getId(),
                 item.getQuestionType(),
                 item.getPromptSide(),
-                flashcard.getTerm() + " = " + shownDefinition,
+                promptBase + " = " + shownDefinition,
                 correctAnswer,
                 List.of("True", "False"),
                 item.getAttempts());
-    }
-
-    private String pickRandomWrongAnswer(List<Flashcard> allCards, Flashcard currentCard) {
-        List<String> candidates = new ArrayList<>();
-        for (Flashcard card : allCards) {
-            if (!card.getId().equals(currentCard.getId())) {
-                candidates.add(card.getDefinition());
-            }
-        }
-        if (candidates.isEmpty()) {
-            return currentCard.getDefinition(); // fallback if only 1 card
-        }
-        Collections.shuffle(candidates);
-        return candidates.get(0);
     }
 
     private List<String> generateOptions(LearnSessionItem item, List<Flashcard> allCards) {

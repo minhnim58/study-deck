@@ -22,9 +22,23 @@ public record PracticeQuestionResponse(
 
     public static PracticeQuestionResponse from(PracticeTestQuestion question, List<String> options) {
         var flashcard = question.getFlashcard();
-        String prompt = question.getQuestionType() == LearnQuestionType.TRUE_FALSE
-                ? flashcard.getTerm() + " = " + question.getCorrectAnswer()
-                : prompt(question);
+        String prompt;
+        if (question.getQuestionType() == LearnQuestionType.TRUE_FALSE) {
+            String candidateAnswer;
+            if (question.getTrueFalseWrongAnswer() != null) {
+                candidateAnswer = question.getTrueFalseWrongAnswer();
+            } else {
+                candidateAnswer = question.getPromptSide() == PromptSide.TERM
+                        ? flashcard.getDefinition()
+                        : flashcard.getTerm();
+            }
+            String promptBase = question.getPromptSide() == PromptSide.TERM
+                    ? flashcard.getTerm()
+                    : flashcard.getDefinition();
+            prompt = promptBase + " = " + candidateAnswer;
+        } else {
+            prompt = prompt(question);
+        }
         List<String> effectiveOptions = List.of();
         if (question.getQuestionType() == LearnQuestionType.MULTIPLE_CHOICE) {
             effectiveOptions = options;

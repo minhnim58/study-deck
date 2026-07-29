@@ -61,6 +61,9 @@ public class LearnSessionItem {
     @Column(nullable = false)
     private boolean trueFalseCorrectValue = true;
 
+    @Column(length = 1000)
+    private String trueFalseWrongAnswer;
+
     protected LearnSessionItem() {
     }
 
@@ -70,7 +73,7 @@ public class LearnSessionItem {
             LearnQuestionType questionType,
             PromptSide promptSide,
             int position) {
-        return create(session, flashcard, questionType, promptSide, position, true);
+        return create(session, flashcard, questionType, promptSide, position, true, null);
     }
 
     public static LearnSessionItem create(
@@ -79,7 +82,8 @@ public class LearnSessionItem {
             LearnQuestionType questionType,
             PromptSide promptSide,
             int position,
-            boolean trueFalseCorrectValue) {
+            boolean trueFalseCorrectValue,
+            String trueFalseWrongAnswer) {
         if (flashcard == null) {
             throw new IllegalArgumentException("Flashcard is required.");
         }
@@ -92,6 +96,7 @@ public class LearnSessionItem {
         item.status = LearnItemStatus.ACTIVE;
         item.position = position;
         item.trueFalseCorrectValue = trueFalseCorrectValue;
+        item.trueFalseWrongAnswer = trueFalseWrongAnswer;
         return item;
     }
 
@@ -110,6 +115,10 @@ public class LearnSessionItem {
 
     public boolean isTrueFalseCorrectValue() {
         return trueFalseCorrectValue;
+    }
+
+    public String getTrueFalseWrongAnswer() {
+        return trueFalseWrongAnswer;
     }
 
     public Long getId() {

@@ -50,6 +50,9 @@ public class PracticeTestQuestion {
 
     private Boolean correct;
 
+    @Column(length = 1000)
+    private String trueFalseWrongAnswer;
+
     private Instant answeredAt;
 
     @Column(nullable = false)
@@ -93,6 +96,7 @@ public class PracticeTestQuestion {
                 // This is a TRUE question - shown definition is correct
                 question.correctAnswer = "true";
             }
+            question.trueFalseWrongAnswer = trueFalseWrongAnswer;
         } else {
             question.correctAnswer = promptSide == PromptSide.TERM
                     ? flashcard.getDefinition()
@@ -126,6 +130,10 @@ public class PracticeTestQuestion {
 
     public PromptSide getPromptSide() {
         return promptSide;
+    }
+
+    public String getTrueFalseWrongAnswer() {
+        return trueFalseWrongAnswer;
     }
 
     public String getCorrectAnswer() {

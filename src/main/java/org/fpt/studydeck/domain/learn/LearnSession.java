@@ -74,18 +74,39 @@ public class LearnSession {
         for (int position = 0; position < flashcards.size(); position++) {
             LearnQuestionType questionType = questionTypes.get(position % questionTypes.size());
             boolean trueFalseCorrectValue = true;
+            String trueFalseWrongAnswer = null;
             if (questionType == LearnQuestionType.TRUE_FALSE && flashcards.size() > 1) {
                 // Randomly decide if this should be a FALSE question (~50% chance)
-                trueFalseCorrectValue = Math.random() >= 0.5;
+                if (Math.random() < 0.5) {
+                    trueFalseCorrectValue = false;
+                    trueFalseWrongAnswer = pickRandomWrongAnswer(flashcards, position, PromptSide.TERM);
+                }
             }
-            session.addItem(flashcards.get(position), questionType, PromptSide.TERM, position, trueFalseCorrectValue);
+            session.addItem(flashcards.get(position), questionType, PromptSide.TERM, position, trueFalseCorrectValue,
+                    trueFalseWrongAnswer);
         }
         return session;
     }
 
+    private static String pickRandomWrongAnswer(List<Flashcard> flashcards, int currentIndex, PromptSide promptSide) {
+        List<Integer> candidates = new ArrayList<>();
+        for (int i = 0; i < flashcards.size(); i++) {
+            if (i != currentIndex) {
+                candidates.add(i);
+            }
+        }
+        if (candidates.isEmpty()) {
+            return null;
+        }
+        java.util.Collections.shuffle(candidates);
+        Flashcard wrongCard = flashcards.get(candidates.get(0));
+        return promptSide == PromptSide.TERM ? wrongCard.getDefinition() : wrongCard.getTerm();
+    }
+
     private void addItem(Flashcard flashcard, LearnQuestionType questionType, PromptSide promptSide, int position,
-            boolean trueFalseCorrectValue) {
-        items.add(LearnSessionItem.create(this, flashcard, questionType, promptSide, position, trueFalseCorrectValue));
+            boolean trueFalseCorrectValue, String trueFalseWrongAnswer) {
+        items.add(LearnSessionItem.create(this, flashcard, questionType, promptSide, position, trueFalseCorrectValue,
+                trueFalseWrongAnswer));
     }
 
     public void complete() {
