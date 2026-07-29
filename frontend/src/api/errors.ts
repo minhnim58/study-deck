@@ -36,9 +36,22 @@ export function normalizeApiError(error: unknown): ApiError {
     const data = error.response?.data as ApiErrorBody | undefined;
     const fieldErrors = [...(data?.errors ?? []), ...(data?.fieldErrors ?? [])];
 
+    let rawMessage = data?.message ?? data?.detail ?? data?.error ?? error.message ?? 'Request failed';
+    
+    // Map weird technical messages to friendly ones
+    if (rawMessage.includes('Duplicate entry') && rawMessage.includes('email')) {
+      rawMessage = 'This email is already registered. Please sign in or use a different email.';
+    } else if (rawMessage.includes('Bad credentials') || rawMessage.includes('UserDetailsService')) {
+      rawMessage = 'Incorrect email or password.';
+    } else if (rawMessage.includes('User not found')) {
+      rawMessage = 'No account found with this email.';
+    } else if (rawMessage.includes('Validation failed')) {
+      rawMessage = 'Please check your input properties.';
+    }
+
     return {
       status: error.response?.status,
-      message: data?.message ?? data?.detail ?? data?.error ?? error.message ?? 'Request failed',
+      message: rawMessage,
       path: data?.path,
       errors: fieldErrors.length > 0 ? fieldErrors : undefined,
     };

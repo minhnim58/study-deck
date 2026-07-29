@@ -57,13 +57,6 @@ export function DeckDetailPage() {
           <PageHeader
             title={deck.data.title}
             description={deck.data.description ?? 'No description'}
-            actions={
-              deck.data.creatorId === user?.id ? (
-                <Button component={Link} to={`/decks/${parsedDeckId}/flashcards/edit`} leftSection={<IconEdit size={16} />}>
-                  Edit cards
-                </Button>
-              ) : null
-            }
           />
 
           <Group gap="sm">
@@ -107,8 +100,8 @@ export function DeckDetailPage() {
               description="Create flashcards before starting a study mode."
               action={
                 deck.data?.creatorId === user?.id ? (
-                  <Button component={Link} to={`/decks/${parsedDeckId}/flashcards/edit`}>
-                    Add cards
+                  <Button component={Link} to={`/decks/${parsedDeckId}/flashcards/edit`} leftSection={<IconEdit size={16} />}>
+                    Manage cards
                   </Button>
                 ) : null
               }

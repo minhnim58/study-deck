@@ -1,6 +1,9 @@
 import { Badge, Button, Card, Group, Progress, Stack, Text, ThemeIcon } from '@mantine/core';
 import { IconCheck, IconTargetArrow } from '@tabler/icons-react';
 import type { DailyMissionResponse } from '../api/types';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { claimDailyMission } from '../api/gamificationApi';
+import { notifications } from '@mantine/notifications';
 
 type DailyMissionListProps = {
   missions: DailyMissionResponse[];
@@ -8,6 +11,22 @@ type DailyMissionListProps = {
 };
 
 export function DailyMissionList({ missions, onClaim }: DailyMissionListProps) {
+  const queryClient = useQueryClient();
+
+  const claimMutation = useMutation({
+    mutationFn: (missionKey: string) => claimDailyMission(missionKey),
+    onSuccess: (data) => {
+      notifications.show({ color: 'green', message: `Mission claimed! You earned a reward.` });
+      queryClient.invalidateQueries({ queryKey: ['daily-missions'] });
+      queryClient.invalidateQueries({ queryKey: ['gamification'] });
+      if (onClaim) {
+        onClaim(data.missionKey);
+      }
+    },
+    onError: (error) => {
+      notifications.show({ color: 'red', message: `Could not claim mission.` });
+    }
+  });
   return (
     <Stack gap="sm">
       {missions.map((mission) => {
@@ -43,8 +62,9 @@ export function DailyMissionList({ missions, onClaim }: DailyMissionListProps) {
                 <Button 
                   size="compact-sm" 
                   variant={mission.status === 'CLAIMED' ? 'default' : 'light'} 
-                  disabled={mission.status === 'CLAIMED'}
-                  onClick={() => onClaim?.(mission.key)}
+                  disabled={mission.status === 'CLAIMED' || claimMutation.isPending}
+                  loading={claimMutation.isPending && claimMutation.variables === mission.key}
+                  onClick={() => claimMutation.mutate(mission.key)}
                 >
                   {mission.status === 'CLAIMED' ? 'Claimed' : 'Claim'}
                 </Button>

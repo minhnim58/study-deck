@@ -10,6 +10,8 @@ import type { CreateFlashcardRequest, FlashcardResponse, UpdateFlashcardRequest 
 import { EmptyState } from '../../components/EmptyState';
 import { PageHeader } from '../../components/PageHeader';
 import { FlashcardFormModal } from './FlashcardFormModal';
+import { ImportCardsModal } from './ImportCardsModal';
+import { importFlashcards } from '../../api/deckApi';
 
 export function FlashcardEditorPage() {
   const { deckId } = useParams();
@@ -19,6 +21,7 @@ export function FlashcardEditorPage() {
   const deck = useQuery({ queryKey: ['deck', parsedDeckId], queryFn: () => getDeck(parsedDeckId), enabled });
   const flashcards = useQuery({ queryKey: ['flashcards', parsedDeckId], queryFn: () => listFlashcards(parsedDeckId), enabled });
   const [modalOpen, setModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<FlashcardResponse | null>(null);
 
   function invalidateFlashcards() {
@@ -32,6 +35,18 @@ export function FlashcardEditorPage() {
       notifications.show({ color: 'green', message: 'Flashcard created' });
       setModalOpen(false);
       invalidateFlashcards();
+    },
+  });
+
+  const importMutation = useMutation({
+    mutationFn: (requests: CreateFlashcardRequest[]) => importFlashcards(parsedDeckId, requests),
+    onSuccess: (data) => {
+      notifications.show({ color: 'green', message: `Imported ${data.length} flashcards` });
+      setImportModalOpen(false);
+      invalidateFlashcards();
+    },
+    onError: (error) => {
+      notifications.show({ color: 'red', message: `Could not import flashcards. Check format and try again.` });
     },
   });
 
@@ -83,15 +98,25 @@ export function FlashcardEditorPage() {
         title={deck.data ? `${deck.data.title} cards` : 'Flashcards'}
         description="Create and maintain the cards in this deck."
         actions={
-          <Button
-            leftSection={<IconPlus size={16} />}
-            onClick={() => {
-              setEditingCard(null);
-              setModalOpen(true);
-            }}
-          >
-            New card
-          </Button>
+          <Group gap="sm">
+            <Button
+              variant="light"
+              onClick={() => {
+                setImportModalOpen(true);
+              }}
+            >
+              Import 
+            </Button>
+            <Button
+              leftSection={<IconPlus size={16} />}
+              onClick={() => {
+                setEditingCard(null);
+                setModalOpen(true);
+              }}
+            >
+              New card
+            </Button>
+          </Group>
         }
       />
 
@@ -190,6 +215,12 @@ export function FlashcardEditorPage() {
             createMutation.mutate(values);
           }
         }}
+      />
+      <ImportCardsModal
+        opened={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        loading={importMutation.isPending}
+        onSubmit={(cards) => importMutation.mutate(cards)}
       />
     </Stack>
   );

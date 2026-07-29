@@ -1,8 +1,10 @@
 package org.fpt.studydeck.controller.deck;
 
+import java.security.Principal;
 import java.util.List;
 
 import jakarta.validation.Valid;
+import org.fpt.studydeck.domain.deck.Flashcard;
 import org.fpt.studydeck.dto.deck.CreateFlashcardRequest;
 import org.fpt.studydeck.dto.deck.FlashcardResponse;
 import org.fpt.studydeck.dto.deck.StarFlashcardRequest;
@@ -30,39 +32,54 @@ public class FlashcardController {
     }
 
     @GetMapping("/decks/{deckId}/flashcards")
-    public List<FlashcardResponse> listDeckFlashcards(@PathVariable("deckId") Long deckId) {
+    public List<FlashcardResponse> listDeckFlashcards(java.security.Principal principal,
+            @PathVariable("deckId") Long deckId) {
+        String email = principal != null ? principal.getName() : null;
         return flashcardService.listDeckFlashcards(deckId).stream()
-            .map(FlashcardResponse::from)
-            .toList();
+                .map(f -> FlashcardResponse.from(f, email))
+                .toList();
     }
 
     @PostMapping("/decks/{deckId}/flashcards")
     @ResponseStatus(HttpStatus.CREATED)
     public FlashcardResponse createFlashcard(
-        @PathVariable("deckId") Long deckId,
-        @Valid @RequestBody CreateFlashcardRequest request
-    ) {
-        return FlashcardResponse.from(flashcardService.createFlashcard(
-            deckId,
-            request.term(),
-            request.definition(),
-            request.termImageUrl(),
-            request.definitionImageUrl()
-        ));
+            @PathVariable Long deckId,
+            @Valid @RequestBody CreateFlashcardRequest request,
+            Principal principal) {
+        Flashcard flashcard = flashcardService.createFlashcard(
+                deckId,
+                request.term(),
+                request.definition(),
+                request.termImageUrl(),
+                request.definitionImageUrl());
+        return FlashcardResponse.from(flashcard, principal != null ? principal.getName() : null);
+    }
+
+    @PostMapping("/decks/{deckId}/flashcards/bulk")
+    @ResponseStatus(HttpStatus.CREATED)
+    public List<FlashcardResponse> createFlashcards(
+            @PathVariable Long deckId,
+            @Valid @RequestBody List<CreateFlashcardRequest> requests,
+            Principal principal) {
+        List<Flashcard> flashcards = flashcardService.createFlashcards(deckId, requests);
+        String userEmail = principal != null ? principal.getName() : null;
+        return flashcards.stream()
+                .map(flashcard -> FlashcardResponse.from(flashcard, userEmail))
+                .toList();
     }
 
     @PatchMapping("/flashcards/{flashcardId}")
     public FlashcardResponse updateFlashcard(
-        @PathVariable("flashcardId") Long flashcardId,
-        @Valid @RequestBody UpdateFlashcardRequest request
-    ) {
+            java.security.Principal principal,
+            @PathVariable("flashcardId") Long flashcardId,
+            @Valid @RequestBody UpdateFlashcardRequest request) {
+        String email = principal != null ? principal.getName() : null;
         return FlashcardResponse.from(flashcardService.updateFlashcard(
-            flashcardId,
-            request.term(),
-            request.definition(),
-            request.termImageUrl(),
-            request.definitionImageUrl()
-        ));
+                flashcardId,
+                request.term(),
+                request.definition(),
+                request.termImageUrl(),
+                request.definitionImageUrl()), email);
     }
 
     @DeleteMapping("/flashcards/{flashcardId}")
@@ -73,9 +90,11 @@ public class FlashcardController {
 
     @PatchMapping("/flashcards/{flashcardId}/star")
     public FlashcardResponse setStarred(
-        @PathVariable("flashcardId") Long flashcardId,
-        @Valid @RequestBody StarFlashcardRequest request
-    ) {
-        return FlashcardResponse.from(flashcardService.setStarred(flashcardId, request.starred()));
+            java.security.Principal principal,
+            @PathVariable("flashcardId") Long flashcardId,
+            @Valid @RequestBody StarFlashcardRequest request) {
+        return FlashcardResponse.from(
+                flashcardService.setStarred(flashcardId, principal.getName(), request.starred()),
+                principal.getName());
     }
 }

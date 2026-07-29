@@ -2,15 +2,7 @@ package org.fpt.studydeck.domain.deck;
 
 import java.time.Instant;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "flashcards")
@@ -36,7 +28,11 @@ public class Flashcard {
     @Column(name = "definition_image_url", length = 2048)
     private String definitionImageUrl;
 
-    @Column(nullable = false)
+    @ManyToMany
+    @JoinTable(name = "user_starred_flashcards", joinColumns = @JoinColumn(name = "flashcard_id"), inverseJoinColumns = @JoinColumn(name = "user_id"))
+    private java.util.Set<org.fpt.studydeck.domain.auth.AppUser> starredByUsers = new java.util.HashSet<>();
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
     private boolean starred = false;
 
     @Column(nullable = false)
@@ -52,13 +48,12 @@ public class Flashcard {
     }
 
     public static Flashcard create(
-        Deck deck,
-        String term,
-        String definition,
-        String termImageUrl,
-        String definitionImageUrl,
-        int position
-    ) {
+            Deck deck,
+            String term,
+            String definition,
+            String termImageUrl,
+            String definitionImageUrl,
+            int position) {
         if (deck == null) {
             throw new IllegalArgumentException("Deck is required.");
         }
@@ -68,7 +63,6 @@ public class Flashcard {
         flashcard.definition = requireDefinition(definition);
         flashcard.termImageUrl = Folder.trimToNull(termImageUrl);
         flashcard.definitionImageUrl = Folder.trimToNull(definitionImageUrl);
-        flashcard.starred = false;
         flashcard.position = position;
         flashcard.createdAt = Instant.now();
         flashcard.updatedAt = flashcard.createdAt;
@@ -83,9 +77,17 @@ public class Flashcard {
         this.updatedAt = Instant.now();
     }
 
-    public void setStarred(boolean starred) {
-        this.starred = starred;
+    public void toggleStar(org.fpt.studydeck.domain.auth.AppUser user, boolean starred) {
+        if (starred) {
+            this.starredByUsers.add(user);
+        } else {
+            this.starredByUsers.remove(user);
+        }
         this.updatedAt = Instant.now();
+    }
+
+    public boolean isStarredBy(String userEmail) {
+        return starredByUsers.stream().anyMatch(u -> u.getEmail().equalsIgnoreCase(userEmail));
     }
 
     private static String requireTerm(String term) {
@@ -126,10 +128,6 @@ public class Flashcard {
 
     public String getDefinitionImageUrl() {
         return definitionImageUrl;
-    }
-
-    public boolean isStarred() {
-        return starred;
     }
 
     public int getPosition() {

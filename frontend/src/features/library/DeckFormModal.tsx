@@ -36,7 +36,11 @@ function toRequest(values: DeckFormValues, editing: boolean): CreateDeckRequest 
   };
 }
 
+import { useAuth } from '../../auth/AuthProvider';
+
 export function DeckFormModal({ opened, onClose, onSubmit, folders, deck, loading = false }: DeckFormModalProps) {
+  const { user } = useAuth();
+  
   const form = useForm<DeckFormValues>({
     initialValues: {
       folderId: null,
@@ -64,6 +68,9 @@ export function DeckFormModal({ opened, onClose, onSubmit, folders, deck, loadin
     form.resetDirty();
   }, [deck, opened]);
 
+  // Filter folders: only show folders created by the current user
+  const ownFolders = folders.filter((folder) => folder.creatorId === user?.id);
+
   return (
     <Modal opened={opened} onClose={onClose} title={deck ? 'Edit deck' : 'Create deck'} centered>
       <form onSubmit={form.onSubmit((values) => onSubmit(toRequest(values, Boolean(deck))))}>
@@ -72,13 +79,13 @@ export function DeckFormModal({ opened, onClose, onSubmit, folders, deck, loadin
             label="Folder"
             placeholder="No folder"
             clearable
-            data={folders.map((folder) => ({ value: String(folder.id), label: folder.name }))}
+            data={ownFolders.map((folder) => ({ value: String(folder.id), label: folder.name }))}
             disabled={Boolean(deck)}
             {...form.getInputProps('folderId')}
             onChange={(val) => {
               form.setFieldValue('folderId', val);
               if (val) {
-                const folder = folders.find((f) => String(f.id) === val);
+                const folder = ownFolders.find((f) => String(f.id) === val);
                 if (folder?.visibility === 'PRIVATE') {
                   form.setFieldValue('visibility', 'PRIVATE');
                 }
@@ -95,7 +102,7 @@ export function DeckFormModal({ opened, onClose, onSubmit, folders, deck, loadin
               { value: 'PUBLIC', label: 'Public - Anyone can view' },
             ]}
             {...form.getInputProps('visibility')}
-            disabled={Boolean(form.values.folderId && folders.find(f => String(f.id) === form.values.folderId)?.visibility === 'PRIVATE')}
+            disabled={Boolean(form.values.folderId && ownFolders.find(f => String(f.id) === form.values.folderId)?.visibility === 'PRIVATE')}
           />
           <Group justify="flex-end">
             <Button variant="subtle" onClick={onClose} type="button">

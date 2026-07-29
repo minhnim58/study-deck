@@ -17,7 +17,8 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
 @DataJpaTest
-@Import({DeckService.class, FlashcardService.class, FsrsScheduler.class, SrsReviewService.class, LearnSessionService.class})
+@Import({ DeckService.class, FlashcardService.class, FsrsScheduler.class, SrsReviewService.class,
+        LearnSessionService.class })
 class FlashcardServiceTest {
 
     @Autowired
@@ -33,28 +34,42 @@ class FlashcardServiceTest {
     private LearnSessionService learnSessionService;
 
     @Autowired
+    private org.fpt.studydeck.repository.auth.AppUserRepository appUserRepository;
+
+    @Autowired
+    private org.fpt.studydeck.repository.deck.FlashcardRepository flashcardRepository;
+
+    @Autowired
     private SrsCardStateRepository srsCardStateRepository;
 
     @Autowired
     private SrsReviewLogRepository srsReviewLogRepository;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        if (!appUserRepository.existsByEmail("user@example.com")) {
+            org.fpt.studydeck.domain.auth.AppUser user = org.fpt.studydeck.domain.auth.AppUser
+                    .create("user@example.com", "password", "Test User");
+            appUserRepository.save(user);
+        }
+    }
 
     @Test
     void createsFlashcardWithOptionalImageUrls() {
         var deck = deckService.createDeck(null, "Korean Basics", null);
 
         var flashcard = flashcardService.createFlashcard(
-            deck.getId(),
-            " 현장 ",
-            " site ",
-            " https://example.com/term.png ",
-            " https://example.com/definition.png "
-        );
+                deck.getId(),
+                " 현장 ",
+                " site ",
+                " https://example.com/term.png ",
+                " https://example.com/definition.png ");
 
         assertThat(flashcard.getTerm()).isEqualTo("현장");
         assertThat(flashcard.getDefinition()).isEqualTo("site");
         assertThat(flashcard.getTermImageUrl()).isEqualTo("https://example.com/term.png");
         assertThat(flashcard.getDefinitionImageUrl()).isEqualTo("https://example.com/definition.png");
-        assertThat(flashcard.isStarred()).isFalse();
+        assertThat(flashcard.isStarredBy("user@example.com")).isFalse();
         assertThat(flashcard.getPosition()).isZero();
     }
 
@@ -63,9 +78,11 @@ class FlashcardServiceTest {
         var deck = deckService.createDeck(null, "Korean Basics", null);
         var flashcard = flashcardService.createFlashcard(deck.getId(), "현장", "site", null, null);
 
-        var starred = flashcardService.setStarred(flashcard.getId(), true);
+        flashcardService.setStarred(flashcard.getId(), "user@example.com", true);
+        assertThat(flashcardRepository.findById(flashcard.getId()).get().isStarredBy("user@example.com")).isTrue();
 
-        assertThat(starred.isStarred()).isTrue();
+        flashcardService.setStarred(flashcard.getId(), "user@example.com", false);
+        assertThat(flashcardRepository.findById(flashcard.getId()).get().isStarredBy("user@example.com")).isFalse();
     }
 
     @Test
@@ -73,8 +90,8 @@ class FlashcardServiceTest {
         var deck = deckService.createDeck(null, "Korean Basics", null);
 
         assertThatThrownBy(() -> flashcardService.createFlashcard(deck.getId(), " ", "site", null, null))
-            .isInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Term is required.");
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Term is required.");
     }
 
     @Test
@@ -86,8 +103,8 @@ class FlashcardServiceTest {
         flashcardService.deleteFlashcard(flashcard.getId());
 
         assertThatThrownBy(() -> flashcardService.getFlashcard(flashcard.getId()))
-            .isInstanceOf(org.fpt.studydeck.exception.ResourceNotFoundException.class)
-            .hasMessage("Flashcard was not found.");
+                .isInstanceOf(org.fpt.studydeck.exception.ResourceNotFoundException.class)
+                .hasMessage("Flashcard was not found.");
         assertThat(srsCardStateRepository.findByFlashcardId(flashcard.getId())).isEmpty();
         assertThat(srsReviewLogRepository.count()).isZero();
     }
@@ -97,14 +114,13 @@ class FlashcardServiceTest {
         var deck = deckService.createDeck(null, "Korean Basics", null);
         var flashcard = flashcardService.createFlashcard(deck.getId(), "현장", "site", null, null);
         learnSessionService.createSession(
-            deck.getId(),
-            new CreateLearnSessionRequest(0, true, false, false, false, false, false)
-        );
+                deck.getId(),
+                new CreateLearnSessionRequest(0, true, false, false, false, false, false));
 
         flashcardService.deleteFlashcard(flashcard.getId());
 
         assertThatThrownBy(() -> flashcardService.getFlashcard(flashcard.getId()))
-            .isInstanceOf(org.fpt.studydeck.exception.ResourceNotFoundException.class)
-            .hasMessage("Flashcard was not found.");
+                .isInstanceOf(org.fpt.studydeck.exception.ResourceNotFoundException.class)
+                .hasMessage("Flashcard was not found.");
     }
 }

@@ -16,7 +16,7 @@ import { notifications } from '@mantine/notifications';
 import { IconAlertCircle, IconCards, IconFolder, IconPlus, IconSearch } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import {
   createDeck,
   createFolder,
@@ -46,7 +46,19 @@ export function LibraryPage() {
   const [editingFolder, setEditingFolder] = useState<FolderResponse | null>(null);
   const [editingDeck, setEditingDeck] = useState<DeckResponse | null>(null);
   const [search, setSearch] = useState('');
-  const [folderFilter, setFolderFilter] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const folderFilter = searchParams.get('folder');
+
+  const setFolderFilter = (value: string | null) => {
+    setSearchParams((prev) => {
+      if (value) {
+        prev.set('folder', value);
+      } else {
+        prev.delete('folder');
+      }
+      return prev;
+    });
+  };
 
   const createFolderMutation = useMutation({
     mutationFn: createFolder,
@@ -255,7 +267,10 @@ export function LibraryPage() {
           <Title order={2}>Folders</Title>
           <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
             {filteredFolders.map((folder) => (
-              <Card key={folder.id} withBorder radius="sm">
+              <Card key={folder.id} withBorder radius="sm" component={Link} to={`/decks?folder=${folder.id}`} 
+                style={{ textDecoration: 'none', color: 'inherit' }}
+                sx={(theme) => ({ '&:hover': { borderColor: theme.colors.blue[5] } })}
+              >
                 <Stack gap="sm">
                   <Group justify="space-between" align="flex-start">
                     <Group gap="sm">
@@ -263,7 +278,9 @@ export function LibraryPage() {
                       <Text fw={700}>{folder.name}</Text>
                     </Group>
                     {folder.creatorId === user?.id ? (
-                      <EntityMenu onEdit={() => setEditingFolder(folder)} onDelete={() => handleDeleteFolder(folder)} />
+                      <div onClick={(e) => e.preventDefault()}>
+                        <EntityMenu onEdit={() => setEditingFolder(folder)} onDelete={() => handleDeleteFolder(folder)} />
+                      </div>
                     ) : null}
                   </Group>
                   {folder.description ? (
